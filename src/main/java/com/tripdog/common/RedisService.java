@@ -2,11 +2,15 @@ package com.tripdog.common;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Redis服务类
@@ -22,16 +26,30 @@ public class RedisService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final StringRedisTemplate stringRedisTemplate;
 
+    private final AtomicBoolean redisAvailable = new AtomicBoolean(true);
+    private final AtomicInteger consecutiveFailures = new AtomicInteger(0);
+
+    @Value("${redis.health-check.failure-threshold:3}")
+    private int failureThreshold;
+
+    @Value("${redis.health-check.key:redis:health:check}")
+    private String healthCheckKey;
+
     /**
      * 设置key-value
      * @param key 键
      * @param value 值
      */
     public void set(String key, Object value) {
+        if (!redisAvailable.get()) {
+            log.debug("Redis不可用，跳过set: {}", key);
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(key, value);
+            markSuccess();
         } catch (Exception e) {
-            log.error("Redis set操作失败, key: {}", key, e);
+            markFailure("set", key, e);
         }
     }
 
@@ -43,10 +61,15 @@ public class RedisService {
      * @param unit 时间单位
      */
     public void set(String key, Object value, long timeout, TimeUnit unit) {
+        if (!redisAvailable.get()) {
+            log.debug("Redis不可用，跳过set: {}", key);
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(key, value, timeout, unit);
+            markSuccess();
         } catch (Exception e) {
-            log.error("Redis set with timeout操作失败, key: {}", key, e);
+            markFailure("setWithTimeout", key, e);
         }
     }
 
@@ -56,10 +79,15 @@ public class RedisService {
      * @return 值
      */
     public Object get(String key) {
+        if (!redisAvailable.get()) {
+            return null;
+        }
         try {
-            return redisTemplate.opsForValue().get(key);
+            Object value = redisTemplate.opsForValue().get(key);
+            markSuccess();
+            return value;
         } catch (Exception e) {
-            log.error("Redis get操作失败, key: {}", key, e);
+            markFailure("get", key, e);
             return null;
         }
     }
@@ -70,10 +98,15 @@ public class RedisService {
      * @return 字符串值
      */
     public String getString(String key) {
+        if (!redisAvailable.get()) {
+            return null;
+        }
         try {
-            return stringRedisTemplate.opsForValue().get(key);
+            String value = stringRedisTemplate.opsForValue().get(key);
+            markSuccess();
+            return value;
         } catch (Exception e) {
-            log.error("Redis getString操作失败, key: {}", key, e);
+            markFailure("getString", key, e);
             return null;
         }
     }
@@ -84,11 +117,7 @@ public class RedisService {
      * @param value 值
      */
     public void setString(String key, String value) {
-        try {
-            stringRedisTemplate.opsForValue().set(key, value);
-        } catch (Exception e) {
-            log.error("Redis setString操作失败, key: {}", key, e);
-        }
+        setString(key, value, -1, null);
     }
 
     /**
@@ -100,11 +129,20 @@ public class RedisService {
      * @return 是否设置成功
      */
     public boolean setString(String key, String value, long timeout, TimeUnit unit) {
+        if (!redisAvailable.get()) {
+            log.debug("Redis不可用，跳过setString: {}", key);
+            return false;
+        }
         try {
-            stringRedisTemplate.opsForValue().set(key, value, timeout, unit);
+            if (timeout > 0 && unit != null) {
+                stringRedisTemplate.opsForValue().set(key, value, timeout, unit);
+            } else {
+                stringRedisTemplate.opsForValue().set(key, value);
+            }
+            markSuccess();
             return true;
         } catch (Exception e) {
-            log.error("Redis setString with timeout操作失败, key: {}", key, e);
+            markFailure("setString", key, e);
             return false;
         }
     }
@@ -114,14 +152,7 @@ public class RedisService {
      * @return Redis是否可用
      */
     public boolean isRedisAvailable() {
-        try {
-            // 尝试执行一个简单的Redis操作来验证连接
-            stringRedisTemplate.opsForValue().get("redis:health:check");
-            return true;
-        } catch (Exception e) {
-            log.debug("Redis连接检查失败", e);
-            return false;
-        }
+        return redisAvailable.get();
     }
 
     /**
@@ -130,10 +161,15 @@ public class RedisService {
      * @return 是否删除成功
      */
     public Boolean delete(String key) {
+        if (!redisAvailable.get()) {
+            return false;
+        }
         try {
-            return redisTemplate.delete(key);
+            Boolean deleted = redisTemplate.delete(key);
+            markSuccess();
+            return deleted;
         } catch (Exception e) {
-            log.error("Redis delete操作失败, key: {}", key, e);
+            markFailure("delete", key, e);
             return false;
         }
     }
@@ -144,10 +180,15 @@ public class RedisService {
      * @return 是否存在
      */
     public Boolean hasKey(String key) {
+        if (!redisAvailable.get()) {
+            return false;
+        }
         try {
-            return redisTemplate.hasKey(key);
+            Boolean hasKey = redisTemplate.hasKey(key);
+            markSuccess();
+            return hasKey;
         } catch (Exception e) {
-            log.error("Redis hasKey操作失败, key: {}", key, e);
+            markFailure("hasKey", key, e);
             return false;
         }
     }
@@ -160,10 +201,15 @@ public class RedisService {
      * @return 是否设置成功
      */
     public Boolean expire(String key, long timeout, TimeUnit unit) {
+        if (!redisAvailable.get()) {
+            return false;
+        }
         try {
-            return redisTemplate.expire(key, timeout, unit);
+            Boolean result = redisTemplate.expire(key, timeout, unit);
+            markSuccess();
+            return result;
         } catch (Exception e) {
-            log.error("Redis expire操作失败, key: {}", key, e);
+            markFailure("expire", key, e);
             return false;
         }
     }
@@ -175,10 +221,15 @@ public class RedisService {
      * @return 剩余过期时间
      */
     public Long getExpire(String key, TimeUnit unit) {
+        if (!redisAvailable.get()) {
+            return -1L;
+        }
         try {
-            return redisTemplate.getExpire(key, unit);
+            Long expire = redisTemplate.getExpire(key, unit);
+            markSuccess();
+            return expire;
         } catch (Exception e) {
-            log.error("Redis getExpire操作失败, key: {}", key, e);
+            markFailure("getExpire", key, e);
             return -1L;
         }
     }
@@ -190,10 +241,15 @@ public class RedisService {
      * @return 增加后的值
      */
     public Long increment(String key, long delta) {
+        if (!redisAvailable.get()) {
+            return null;
+        }
         try {
-            return redisTemplate.opsForValue().increment(key, delta);
+            Long result = redisTemplate.opsForValue().increment(key, delta);
+            markSuccess();
+            return result;
         } catch (Exception e) {
-            log.error("Redis increment操作失败, key: {}", key, e);
+            markFailure("increment", key, e);
             return null;
         }
     }
@@ -205,10 +261,15 @@ public class RedisService {
      * @return 减少后的值
      */
     public Long decrement(String key, long delta) {
+        if (!redisAvailable.get()) {
+            return null;
+        }
         try {
-            return redisTemplate.opsForValue().decrement(key, delta);
+            Long result = redisTemplate.opsForValue().decrement(key, delta);
+            markSuccess();
+            return result;
         } catch (Exception e) {
-            log.error("Redis decrement操作失败, key: {}", key, e);
+            markFailure("decrement", key, e);
             return null;
         }
     }
@@ -221,11 +282,16 @@ public class RedisService {
      * @param unit 时间单位
      */
     public void setObject(String key, Object obj, long timeout, TimeUnit unit) {
+        if (!redisAvailable.get()) {
+            log.debug("Redis不可用，跳过setObject: {}", key);
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(key, obj, timeout, unit);
+            markSuccess();
             log.debug("Redis setObject成功, key: {}", key);
         } catch (Exception e) {
-            log.error("Redis setObject操作失败, key: {}", key, e);
+            markFailure("setObject", key, e);
         }
     }
 
@@ -237,13 +303,16 @@ public class RedisService {
      */
     @SuppressWarnings("unchecked")
     public <T> T getObject(String key, Class<T> clazz) {
+        if (!redisAvailable.get()) {
+            return null;
+        }
         try {
             Object obj = redisTemplate.opsForValue().get(key);
+            markSuccess();
             if (obj == null) {
                 return null;
             }
 
-            // 如果对象类型匹配，直接返回
             if (clazz.isInstance(obj)) {
                 return (T) obj;
             }
@@ -251,8 +320,38 @@ public class RedisService {
             log.debug("Redis getObject成功, key: {}", key);
             return (T) obj;
         } catch (Exception e) {
-            log.error("Redis getObject操作失败, key: {}", key, e);
+            markFailure("getObject", key, e);
             return null;
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${redis.health-check.interval:30000}")
+    public void healthCheck() {
+        if (redisAvailable.get()) {
+            return;
+        }
+        try {
+            stringRedisTemplate.opsForValue().get(healthCheckKey);
+            markSuccess();
+            log.info("Redis健康检查成功，恢复连接");
+        } catch (Exception e) {
+            log.debug("Redis健康检查仍失败: {}", e.getMessage());
+        }
+    }
+
+    private void markFailure(String operation, String key, Exception e) {
+        log.error("Redis {} 操作失败, key={}, error={}", operation, key, e.getMessage());
+        int failures = consecutiveFailures.incrementAndGet();
+        if (failures >= failureThreshold && redisAvailable.compareAndSet(true, false)) {
+            log.error("Redis连接连续失败{}次，标记为不可用", failures);
+        }
+    }
+
+    private void markSuccess() {
+        consecutiveFailures.set(0);
+        if (!redisAvailable.get()) {
+            redisAvailable.set(true);
+            log.info("Redis连接恢复可用");
         }
     }
 }
