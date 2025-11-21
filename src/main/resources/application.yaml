@@ -17,6 +17,18 @@ spring:
   web:
     resources:
       add-mappings: true
+  
+  # 文件上传配置
+  servlet:
+    multipart:
+      # 单个文件最大大小（100MB）
+      max-file-size: 100MB
+      # 请求最大大小（100MB）
+      max-request-size: 100MB
+      # 文件写入磁盘的阈值（超过此大小会写入临时文件）
+      file-size-threshold: 10MB
+      # 临时文件位置
+      location: ${java.io.tmpdir}
 
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:trip_dog}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
@@ -38,10 +50,18 @@ spring:
           auth: true
           ssl:
             enable: true  # 启用SSL
+            trust: "*"  # 信任所有SSL证书（开发环境）
           socketFactory:
             port: 465
             class: javax.net.ssl.SSLSocketFactory
             fallback: false
+          # 连接超时设置（毫秒）
+          connectiontimeout: 5000  # 5秒连接超时
+          timeout: 10000  # 10秒读取超时
+          writetimeout: 10000  # 10秒写入超时
+          # 优化性能配置
+          starttls:
+            enable: false  # 使用SSL时禁用STARTTLS
   # Redis配置
   data:
     redis:
