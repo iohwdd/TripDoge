@@ -26,6 +26,18 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
-}
 
+    @Bean
+    public ThreadPoolTaskExecutor redisHealthExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(10);
+        executor.setThreadNamePrefix("redis-health-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(10);
+        executor.initialize();
+        return executor;
+    }
+}
 
