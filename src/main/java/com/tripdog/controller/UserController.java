@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +31,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserService userService;
@@ -83,6 +85,7 @@ public class UserController {
 
             return Result.success(data);
         } catch (RuntimeException e) {
+            logLoginFailure(loginDTO, request, e);
             return Result.error(e.getMessage());
         }
     }
@@ -109,6 +112,13 @@ public class UserController {
         } catch (Exception e) {
             return Result.error(ErrorCode.EMAIL_CODE_SEND_FAILED);
         }
+    }
+
+    private void logLoginFailure(UserLoginDTO loginDTO, HttpServletRequest request, RuntimeException e) {
+        String clientIp = request != null ? request.getRemoteAddr() : "unknown";
+        String userAgent = request != null ? request.getHeader("User-Agent") : "unknown";
+        log.warn("LOGIN_FAIL email={}, ip={}, userAgent={}, reason={}",
+            loginDTO.getEmail(), clientIp, userAgent, e.getMessage());
     }
 
     /**
