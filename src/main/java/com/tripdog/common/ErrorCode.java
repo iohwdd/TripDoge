@@ -20,6 +20,7 @@ public enum ErrorCode {
     USER_REGISTER_FAILED(10102, "用户注册失败"),
     USER_LOGIN_FAILED(10103, "用户登录失败"),
     USER_PASSWORD_ERROR(10104, "密码错误"),
+    USER_PASSWORD_WEAK(10107, "密码强度不足"),
     USER_NOT_LOGIN(10105, "用户未登录"),
     USER_SESSION_EXPIRED(10106, "用户会话已过期"),
 
@@ -47,7 +48,12 @@ public enum ErrorCode {
     NOT_FOUND(10404, "资源不存在"),
 
     // Minio
-    NO_FOUND_FILE(10600, "文件不存在");
+    NO_FOUND_FILE(10600, "文件不存在"),
+    FILE_DOWNLOAD_FAILED(10601, "文件下载失败"),
+    FILE_STORAGE_UNAVAILABLE(10602, "文件存储服务不可用"),
+
+    // 文档删除
+    DOC_DELETE_PARTIAL_SUCCESS(10700, "文档部分删除成功，部分操作失败");
 
     private final int code;
     private final String message;

@@ -10,6 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.tripdog.ai.AssistantService;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.common.utils.FileUploadUtils;
+import com.tripdog.common.utils.FileValidationUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.model.dto.FileUploadDTO;
 import com.tripdog.model.entity.ConversationDO;
@@ -46,7 +47,8 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO chatReqDTO) {
         ThreadLocalUtils.set(ROLE_ID, roleId);
-        SseEmitter emitter = new SseEmitter(-1L);
+        // 设置SSE连接超时时间（30分钟）
+        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
 
         try {
             // 1. 获取或创建会话
@@ -70,7 +72,15 @@ public class ChatServiceImpl implements ChatService {
             MultipartFile file = chatReqDTO.getFile();
             TokenStream stream;
             if(file != null) {
-                // todo 多模态支持
+                // 验证图片文件（多模态支持）
+                try {
+                    FileValidationUtils.validateImageFile(file);
+                } catch (IllegalArgumentException e) {
+                    log.warn("图片文件验证失败: {}", e.getMessage());
+                    emitter.completeWithError(new RuntimeException("图片文件验证失败: " + e.getMessage()));
+                    return emitter;
+                }
+                
                 FileUploadDTO fileUploadDTO = fileUploadUtils.upload2Minio(chatReqDTO.getFile(), userId, "/tmp");
                 String imageUrl = fileUploadUtils.getUrlFromMinio(fileUploadDTO.getFileUrl());
                 UserMessage message = UserMessage.from(TextContent.from(chatReqDTO.getMessage()), ImageContent.from(URI.create(imageUrl)));
@@ -88,13 +98,17 @@ public class ChatServiceImpl implements ChatService {
                         .name("message")
                     );
                 } catch (IOException e) {
-                    log.error("发送SSE部分响应失败", e);
-                    emitter.completeWithError(e);
+                    log.error("发送SSE部分响应失败，客户端可能已断开连接", e);
+                    // 客户端断开连接时，completeWithError会抛出异常，需要捕获
+                    try {
+                        emitter.completeWithError(e);
+                    } catch (Exception ex) {
+                        log.debug("SSE连接已关闭，无需再次关闭", ex);
+                    }
                 }
             }).onCompleteResponse((data) -> {
                 try {
-
-                    // 8. 更新会话统计
+                    // 更新会话统计
                     conversationServiceImpl.updateConversationStats(conversation.getConversationId(), null, null);
 
                     emitter.send(SseEmitter.event()
@@ -102,14 +116,51 @@ public class ChatServiceImpl implements ChatService {
                         .id(String.valueOf(System.currentTimeMillis()))
                         .name("done"));
                     emitter.complete();
+                    log.debug("SSE流式响应完成: conversationId={}", conversation.getConversationId());
                 } catch (IOException e) {
-                    log.error("发送SSE完成响应失败", e);
-                    emitter.completeWithError(e);
+                    log.error("发送SSE完成响应失败，客户端可能已断开连接", e);
+                    // 客户端断开连接时，completeWithError会抛出异常，需要捕获
+                    try {
+                        emitter.completeWithError(e);
+                    } catch (Exception ex) {
+                        log.debug("SSE连接已关闭，无需再次关闭", ex);
+                    }
                 }
             }).onError((ex) -> {
                 log.error("AI聊天流处理异常", ex);
-                emitter.completeWithError(ex);
+                try {
+                    emitter.completeWithError(ex);
+                } catch (Exception e) {
+                    log.debug("SSE连接已关闭，无法发送错误", e);
+                }
             }).start();
+            
+            // 添加超时处理回调
+            emitter.onTimeout(() -> {
+                log.warn("SSE连接超时: conversationId={}, roleId={}, userId={}", 
+                    conversation.getConversationId(), roleId, userId);
+                try {
+                    emitter.complete();
+                } catch (Exception e) {
+                    log.debug("SSE连接已关闭，无法完成超时处理", e);
+                }
+            });
+            
+            // 添加完成回调（正常完成或异常完成）
+            emitter.onCompletion(() -> {
+                log.debug("SSE连接已完成: conversationId={}, roleId={}, userId={}", 
+                    conversation.getConversationId(), roleId, userId);
+                // 清理ThreadLocal（虽然finally中也会清理，但这里确保及时清理）
+                ThreadLocalUtils.remove(ROLE_ID);
+            });
+            
+            // 添加错误回调
+            emitter.onError((ex) -> {
+                log.error("SSE连接发生错误: conversationId={}, roleId={}, userId={}, error={}", 
+                    conversation.getConversationId(), roleId, userId, ex.getMessage(), ex);
+                // 清理ThreadLocal
+                ThreadLocalUtils.remove(ROLE_ID);
+            });
 
         } catch (Exception e) {
             log.error("聊天服务处理异常", e);

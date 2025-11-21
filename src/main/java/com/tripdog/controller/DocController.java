@@ -24,22 +24,26 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.common.utils.FileUploadUtils;
+import com.tripdog.common.utils.FileValidationUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.config.MinioConfig;
 import com.tripdog.model.dto.DocDelDTO;
 import com.tripdog.service.impl.UserSessionService;
 import com.tripdog.service.impl.VectorDataService;
+import com.tripdog.model.dto.DocDeleteResultDTO;
 import com.tripdog.model.dto.DocDownloadDTO;
 import com.tripdog.model.dto.DocListDTO;
 import com.tripdog.model.dto.FileUploadDTO;
 import com.tripdog.model.dto.UploadDTO;
 import com.tripdog.model.entity.DocDO;
 import com.tripdog.model.vo.DocVO;
+import com.tripdog.model.vo.DocUploadResultVO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.DocService;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
+import io.minio.errors.MinioException;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
@@ -51,7 +55,6 @@ import static com.tripdog.common.Constants.FILE_ID;
 import static com.tripdog.common.Constants.FILE_NAME;
 import static com.tripdog.common.Constants.ROLE_ID;
 import static com.tripdog.common.Constants.UPLOAD_TIME;
-import static com.tripdog.common.Constants.USER_ID;
 import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument;
 
 /**
@@ -84,13 +87,22 @@ public class DocController {
         @ApiResponse(responseCode = "10105", description = "用户未登录"),
         @ApiResponse(responseCode = "10000", description = "系统异常")
     })
-    public Result<DocVO> upload(UploadDTO uploadDTO) {
+    public Result<DocUploadResultVO> upload(UploadDTO uploadDTO) {
         // 直接从用户会话服务获取用户信息
         UserInfoVO userInfoVO = userSessionService.getCurrentUser();
         if (userInfoVO == null) {
              return Result.error(ErrorCode.USER_NOT_LOGIN);
         }
         MultipartFile file = uploadDTO.getFile();
+        
+        // 验证文件大小和类型（在业务层再次验证，确保安全）
+        try {
+            FileValidationUtils.validateDocumentFile(file);
+        } catch (IllegalArgumentException e) {
+            log.warn("文件验证失败: {}", e.getMessage());
+            return Result.error(ErrorCode.PARAM_ERROR, e.getMessage());
+        }
+        
         String fileId = UUID.randomUUID().toString();
 
         // 设置元数据到ThreadLocal，用于向量存储时添加
@@ -100,7 +112,7 @@ public class DocController {
         ThreadLocalUtils.set(UPLOAD_TIME, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
         try {
-            // 上传文件到MinIO
+            // 上传文件到MinIO（不再同时上传到本地，避免双重写入）
             FileUploadDTO fileUploadDTO = fileUploadUtils.upload2Minio(
                 file,
                 userInfoVO.getId(),
@@ -121,22 +133,83 @@ public class DocController {
                 return Result.error(ErrorCode.SYSTEM_ERROR);
             }
 
-            // 先上传到本地临时目录用于解析
+            // 从MinIO下载文件到本地临时目录用于解析（避免双重写入）
+            // 注意：这里需要先从MinIO下载，因为Apache Tika需要本地文件路径
+            // 临时方案：先上传到本地临时目录用于解析，解析完成后删除
             FileUploadDTO localFileDTO = FileUploadUtils.upload2Local(file, "/tmp");
             File localFile = new File(localFileDTO.getFilePath());
 
+            boolean vectorizationSuccess = false;
+            String vectorizationError = null;
+            Boolean isConfigError = null;
+            
             try {
-                // 解析文档并创建向量嵌入
-                DocumentParser parser = new ApacheTikaDocumentParser();
-                Document doc = loadDocument(localFile.getAbsolutePath(), parser);
-                ingestor.ingest(doc);
+                // 解析文档并创建向量嵌入（允许失败，不影响上传）
+                try {
+                    DocumentParser parser = new ApacheTikaDocumentParser();
+                    Document doc = loadDocument(localFile.getAbsolutePath(), parser);
+                    ingestor.ingest(doc);
+                    vectorizationSuccess = true;
+                    log.info("文档向量化成功: fileId={}, fileName={}", fileId, file.getOriginalFilename());
+                } catch (Exception e) {
+                    vectorizationError = e.getMessage();
+                    String errorMsg = e.getMessage();
+                    
+                    // 判断是否为配置错误（向量存储未配置、连接失败等）
+                    // 配置错误：向量存储不可用、连接失败等
+                    // 临时错误：解析失败、网络超时等
+                    if (errorMsg != null && (
+                        errorMsg.contains("Connection") || 
+                        errorMsg.contains("连接") ||
+                        errorMsg.contains("unavailable") ||
+                        errorMsg.contains("不可用") ||
+                        errorMsg.contains("not configured") ||
+                        errorMsg.contains("未配置"))) {
+                        isConfigError = true;
+                        log.warn("文档向量化失败（配置错误，文件已上传但无法进行AI检索）: fileId={}, fileName={}, error={}", 
+                            fileId, file.getOriginalFilename(), vectorizationError);
+                    } else {
+                        isConfigError = false;
+                        log.warn("文档向量化失败（临时错误，文件已上传但无法进行AI检索）: fileId={}, fileName={}, error={}", 
+                            fileId, file.getOriginalFilename(), vectorizationError);
+                    }
+                    // 不抛出异常，允许上传成功，但记录警告
+                }
 
-                // 返回文档信息
+                // 返回文档信息和向量化状态
                 DocVO docVO = docService.getDocByFileId(fileId);
-                return Result.success(docVO);
+                
+                // 构建上传结果
+                DocUploadResultVO uploadResult = DocUploadResultVO.builder()
+                    .doc(docVO)
+                    .vectorizationSuccess(vectorizationSuccess)
+                    .vectorizationError(vectorizationError)
+                    .isConfigError(isConfigError)
+                    .build();
+                
+                if (vectorizationSuccess) {
+                    return Result.success(uploadResult);
+                } else {
+                    // 向量化失败，返回警告信息
+                    // 使用自定义消息，前端可以根据vectorizationSuccess判断
+                    String message = isConfigError 
+                        ? "文档上传成功，但向量化功能未配置，无法进行AI检索" 
+                        : "文档上传成功，但向量化失败，无法进行AI检索";
+                    
+                    return Result.success(message, uploadResult);
+                }
             } finally {
-                // 清理本地临时文件
-                FileUploadUtils.deleteLocalFile(localFile);
+                // 清理本地临时文件（确保清理失败不影响主流程，但记录日志）
+                try {
+                    FileUploadUtils.deleteLocalFile(localFile);
+                    log.debug("临时文件清理成功: {}", localFile.getAbsolutePath());
+                } catch (Exception e) {
+                    // 清理失败不影响主流程，但记录警告日志
+                    log.warn("临时文件清理失败，文件可能残留: file={}, error={}", 
+                        localFile.getAbsolutePath(), e.getMessage());
+                    // 记录到待清理列表，由定时任务补偿清理
+                    // 注意：这里不抛出异常，避免影响主流程
+                }
             }
         } catch (Exception e) {
             log.error("文档上传处理异常", e);
@@ -204,29 +277,97 @@ public class DocController {
             }
 
             // 从MinIO下载文件
-            InputStream inputStream = minioClient.getObject(
-                GetObjectArgs.builder()
-                    .bucket(minioConfig.getBucketName())
-                    .object(docVO.getFileUrl())
-                    .build()
-            );
-            byte[] bytes = inputStream.readAllBytes();
-            inputStream.close();
+            InputStream inputStream = null;
+            try {
+                inputStream = minioClient.getObject(
+                    GetObjectArgs.builder()
+                        .bucket(minioConfig.getBucketName())
+                        .object(docVO.getFileUrl())
+                        .build()
+                );
+                byte[] bytes = inputStream.readAllBytes();
 
-            // 设置响应头
+                // 设置响应头
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.setContentDispositionFormData("attachment",
+                    URLEncoder.encode(docVO.getFileName(), StandardCharsets.UTF_8));
+                headers.setContentLength(bytes.length);
+
+                return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(bytes);
+            } catch (MinioException e) {
+                log.error("MinIO下载失败: fileId={}, fileUrl={}, error={}", 
+                    downloadDTO.getFileId(), docVO.getFileUrl(), e.getMessage(), e);
+                
+                // 检查是否是文件不存在
+                String errorMsg = e.getMessage();
+                boolean isNotFound = errorMsg != null && 
+                    (errorMsg.contains("NoSuchKey") || 
+                     errorMsg.contains("does not exist") ||
+                     errorMsg.contains("Object does not exist"));
+                
+                if (isNotFound) {
+                    log.warn("文件在MinIO中不存在: fileId={}, fileUrl={}", downloadDTO.getFileId(), docVO.getFileUrl());
+                    // 返回404，设置正确的Content-Type
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setContentType(MediaType.TEXT_PLAIN);
+                    String errorResponse = ErrorCode.NO_FOUND_FILE.getMessage();
+                    return ResponseEntity.status(404)
+                        .headers(headers)
+                        .body(errorResponse.getBytes(StandardCharsets.UTF_8));
+                }
+                
+                // MinIO连接失败或其他错误，返回503
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.TEXT_PLAIN);
+                String errorResponse = ErrorCode.FILE_STORAGE_UNAVAILABLE.getMessage();
+                return ResponseEntity.status(503)
+                    .headers(headers)
+                    .body(errorResponse.getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e) {
+                log.error("文档下载异常: fileId={}, error={}", downloadDTO.getFileId(), e.getMessage(), e);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.TEXT_PLAIN);
+                String errorResponse = ErrorCode.FILE_DOWNLOAD_FAILED.getMessage();
+                return ResponseEntity.status(500)
+                    .headers(headers)
+                    .body(errorResponse.getBytes(StandardCharsets.UTF_8));
+            } finally {
+                // 确保资源关闭
+                if (inputStream != null) {
+                    try {
+                        inputStream.close();
+                    } catch (Exception e) {
+                        log.warn("关闭输入流失败", e);
+                    }
+                }
+            }
+
+        } catch (RuntimeException e) {
+            // 处理用户未登录等业务异常
+            if (e.getMessage() != null && e.getMessage().contains("用户未登录")) {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.TEXT_PLAIN);
+                return ResponseEntity.status(401)
+                    .headers(headers)
+                    .body(ErrorCode.USER_NOT_LOGIN.getMessage().getBytes(StandardCharsets.UTF_8));
+            }
+            log.error("文档下载业务异常", e);
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment",
-                URLEncoder.encode(docVO.getFileName(), StandardCharsets.UTF_8));
-            headers.setContentLength(bytes.length);
-
-            return ResponseEntity.ok()
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            return ResponseEntity.status(400)
                 .headers(headers)
-                .body(bytes);
-
+                .body(e.getMessage().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            log.error("文档下载异常", e);
-            return ResponseEntity.internalServerError().build();
+            log.error("文档下载未知异常", e);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            String errorResponse = ErrorCode.SYSTEM_ERROR.getMessage();
+            return ResponseEntity.status(500)
+                .headers(headers)
+                .body(errorResponse.getBytes(StandardCharsets.UTF_8));
         }
     }
 
@@ -238,7 +379,7 @@ public class DocController {
         @ApiResponse(responseCode = "10105", description = "用户未登录"),
         @ApiResponse(responseCode = "10404", description = "文件不存在")
     })
-    public Result<String> delete(@RequestBody DocDelDTO docDelDTO) {
+    public Result<DocDeleteResultDTO> delete(@RequestBody DocDelDTO docDelDTO) {
         try {
             // 直接从用户会话服务获取用户信息
             UserInfoVO userInfoVO = userSessionService.getCurrentUser();
@@ -258,28 +399,121 @@ public class DocController {
                 return Result.error(ErrorCode.NO_AUTH);
             }
 
-            // 从MinIO删除文件
-            minioClient.removeObject(
-                RemoveObjectArgs.builder()
-                    .bucket(minioConfig.getBucketName())
-                    .object(docVO.getFileUrl())
-                    .build()
-            );
-
-            // 删除对应的向量数据
-            vectorDataService.deleteByDocumentId(fileId);
-
-            // 从数据库删除记录
-            if (!docService.deleteDoc(fileId)) {
-                log.error("删除数据库文档记录失败: {}", fileId);
-                return Result.error(ErrorCode.SYSTEM_ERROR);
+            // 删除操作：MinIO -> 向量数据 -> 数据库
+            // 即使某个步骤失败，也继续执行后续步骤，避免数据不一致
+            
+            // 1. 从MinIO删除文件（允许失败）
+            boolean minioDeleted = false;
+            String minioError = null;
+            try {
+                minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                        .bucket(minioConfig.getBucketName())
+                        .object(docVO.getFileUrl())
+                        .build()
+                );
+                minioDeleted = true;
+                log.info("MinIO文件删除成功: fileId={}, fileUrl={}", fileId, docVO.getFileUrl());
+            } catch (MinioException e) {
+                // 检查是否是文件不存在（可能已经删除）
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && 
+                    (errorMsg.contains("NoSuchKey") || 
+                     errorMsg.contains("does not exist") ||
+                     errorMsg.contains("Object does not exist"))) {
+                    log.warn("MinIO文件不存在（可能已删除）: fileId={}, fileUrl={}", fileId, docVO.getFileUrl());
+                    minioDeleted = true; // 文件不存在视为删除成功
+                } else {
+                    minioError = e.getMessage();
+                    log.warn("MinIO文件删除失败（继续执行其他删除操作）: fileId={}, fileUrl={}, error={}", 
+                        fileId, docVO.getFileUrl(), minioError);
+                }
+            } catch (Exception e) {
+                minioError = e.getMessage();
+                log.warn("MinIO文件删除异常（继续执行其他删除操作）: fileId={}, fileUrl={}, error={}", 
+                    fileId, docVO.getFileUrl(), minioError);
             }
 
-            return Result.success("文档删除成功");
+            // 2. 删除对应的向量数据（允许失败）
+            boolean vectorDeleted = false;
+            String vectorError = null;
+            try {
+                vectorDataService.deleteByDocumentId(fileId);
+                vectorDeleted = true;
+                log.info("向量数据删除成功: fileId={}", fileId);
+            } catch (Exception e) {
+                vectorError = e.getMessage();
+                log.warn("向量数据删除失败（继续执行数据库删除）: fileId={}, error={}", fileId, vectorError);
+            }
+
+            // 3. 从数据库删除记录（必须成功）
+            boolean dbDeleted = docService.deleteDoc(fileId);
+            if (!dbDeleted) {
+                log.error("删除数据库文档记录失败: fileId={}", fileId);
+                return Result.error(ErrorCode.SYSTEM_ERROR, "数据库删除失败，文档可能已被删除");
+            }
+            log.info("数据库文档记录删除成功: fileId={}", fileId);
+
+            // 构建删除结果
+            boolean allSuccess = minioDeleted && vectorDeleted && dbDeleted;
+            DocDeleteResultDTO deleteResult = DocDeleteResultDTO.builder()
+                .minioDeleted(minioDeleted)
+                .vectorDeleted(vectorDeleted)
+                .dbDeleted(dbDeleted)
+                .allSuccess(allSuccess)
+                .message(buildDeleteMessage(minioDeleted, vectorDeleted, dbDeleted, minioError, vectorError))
+                .build();
+
+            if (allSuccess) {
+                return Result.success("文档删除成功", deleteResult);
+            } else {
+                // 部分成功，返回警告状态（使用自定义code，前端可以根据code判断）
+                Result<DocDeleteResultDTO> result = Result.error(ErrorCode.DOC_DELETE_PARTIAL_SUCCESS.getCode(), 
+                    deleteResult.getMessage());
+                result.setData(deleteResult);
+                return result;
+            }
 
         } catch (Exception e) {
-            log.error("文档删除异常", e);
+            log.error("文档删除异常: fileId={}", docDelDTO.getFileId(), e);
             return Result.error(ErrorCode.SYSTEM_ERROR);
         }
+    }
+    
+    /**
+     * 构建删除结果消息
+     */
+    private String buildDeleteMessage(boolean minioDeleted, boolean vectorDeleted, 
+                                     boolean dbDeleted, String minioError, String vectorError) {
+        StringBuilder message = new StringBuilder();
+        message.append("文档删除完成。");
+        
+        if (dbDeleted) {
+            message.append("数据库记录已删除。");
+        } else {
+            message.append("数据库记录删除失败。");
+        }
+        
+        if (minioDeleted) {
+            message.append("MinIO文件已删除。");
+        } else {
+            message.append("MinIO文件删除失败");
+            if (minioError != null) {
+                message.append(": ").append(minioError);
+            }
+            message.append("。");
+        }
+        
+        if (vectorDeleted) {
+            message.append("向量数据已删除。");
+        } else {
+            message.append("向量数据删除失败");
+            if (vectorError != null) {
+                message.append(": ").append(vectorError);
+            }
+            message.append("。");
+        }
+        
+        return message.toString();
     }
 }

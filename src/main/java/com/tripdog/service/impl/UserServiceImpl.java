@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 用户服务实现类
@@ -67,6 +68,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public UserInfoVO register(UserRegisterDTO registerDTO) {
         // 1. 验证验证码
         if (!emailService.verifyCode(registerDTO.getEmail(), registerDTO.getCode())) {
@@ -78,17 +80,27 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException(ErrorCode.USER_EMAIL_EXISTS.getMessage());
         }
 
-        // 3. 转换为DO对象并加密密码
+        // 3. 验证密码强度（双重验证，确保安全）
+        String password = registerDTO.getPassword();
+        if (password == null || password.length() < 8) {
+            throw new RuntimeException(ErrorCode.USER_PASSWORD_WEAK.getMessage());
+        }
+        if (!password.matches(".*[a-zA-Z].*") || !password.matches(".*[0-9].*")) {
+            throw new RuntimeException(ErrorCode.USER_PASSWORD_WEAK.getMessage());
+        }
+
+        // 4. 转换为DO对象并加密密码
         UserDO userDO = UserConverter.INSTANCE.toUserDO(registerDTO);
         userDO.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
         userDO.setAvatarUrl(Constants.DEFAULT_AVATAR);
-        // 4. 创建用户
+        
+        // 5. 创建用户
         boolean success = createUser(userDO);
         if (!success) {
             throw new RuntimeException(ErrorCode.USER_REGISTER_FAILED.getMessage());
         }
 
-        // 5. 返回用户信息
+        // 6. 返回用户信息
         return UserConverter.INSTANCE.toUserInfoVO(userDO);
     }
 
@@ -111,19 +123,23 @@ public class UserServiceImpl implements UserService {
         }
 
         // 转化头像url
-        String url;
-        try{
-            url = minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(bucketName)
-                    .object(userDO.getAvatarUrl())
-                    .expiry(60 * 60)
-                    .build()
-            );
-            userDO.setAvatarUrl(url);
-        }catch (Exception e){
-            throw new RuntimeException(ErrorCode.NO_FOUND_FILE.getMessage());
+        String avatarKey = userDO.getAvatarUrl();
+        if (avatarKey == null || avatarKey.isEmpty()) {
+            userDO.setAvatarUrl(Constants.DEFAULT_AVATAR);
+        } else {
+            try {
+                String url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
+                        .bucket(bucketName)
+                        .object(avatarKey)
+                        .expiry(60 * 60)
+                        .build()
+                );
+                userDO.setAvatarUrl(url);
+            } catch (Exception e) {
+                userDO.setAvatarUrl(Constants.DEFAULT_AVATAR);
+            }
         }
 
         // 4. 返回用户信息

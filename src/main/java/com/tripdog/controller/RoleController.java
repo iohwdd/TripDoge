@@ -67,10 +67,9 @@ public class RoleController {
                 conversation = conversationService.getOrCreateConversation(userInfo.getId(), roleInfoVO.getId());
             }
             roleInfoVO.setConversationId(conversation.getConversationId());
-            // 转化头像url
-            String url;
-            try{
-                url = minioClient.getPresignedObjectUrl(
+            // 转化头像url，如果 MinIO 不可用则回退到默认地址
+            try {
+                String url = minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                         .method(Method.GET)
                         .bucket(bucketName)
@@ -79,8 +78,8 @@ public class RoleController {
                         .build()
                 );
                 roleInfoVO.setAvatarUrl(url);
-            }catch (Exception e){
-                throw new RuntimeException(ErrorCode.NO_FOUND_FILE.getMessage());
+            } catch (Exception e) {
+                // 开发环境可能没有上传默认头像，忽略异常继续返回原始字段
             }
         });
 
@@ -105,6 +104,38 @@ public class RoleController {
             return Result.error(ErrorCode.NOT_FOUND_ERROR, "角色不存在");
         }
         return Result.success(roleDetail);
+    }
+
+    /**
+     * 获取公开角色列表（无需登录）
+     * 用于未登录用户查看可用的AI角色
+     */
+    @Operation(summary = "获取公开角色列表", description = "获取所有可用的AI角色列表，无需登录即可访问")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取角色列表")
+    })
+    @GetMapping("/public/list")
+    public Result<List<RoleInfoVO>> getPublicRoles() {
+        // 获取角色列表（不包含会话信息）
+        List<RoleInfoVO> roleInfoList = roleService.getRoleInfoList();
+        // 处理头像URL（如果MinIO可用）
+        roleInfoList.forEach(roleInfoVO -> {
+            try {
+                String url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
+                        .bucket(bucketName)
+                        .object(roleInfoVO.getAvatarUrl())
+                        .expiry(60 * 60)
+                        .build()
+                );
+                roleInfoVO.setAvatarUrl(url);
+            } catch (Exception e) {
+                // 如果MinIO不可用，使用原始URL或默认头像
+                // 不抛出异常，允许继续返回角色列表
+            }
+        });
+        return Result.success(roleInfoList);
     }
 
 }
