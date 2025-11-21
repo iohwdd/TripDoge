@@ -97,12 +97,30 @@ public class RedisService {
      * @param value 值
      * @param timeout 过期时间
      * @param unit 时间单位
+     * @return 是否设置成功
      */
-    public void setString(String key, String value, long timeout, TimeUnit unit) {
+    public boolean setString(String key, String value, long timeout, TimeUnit unit) {
         try {
             stringRedisTemplate.opsForValue().set(key, value, timeout, unit);
+            return true;
         } catch (Exception e) {
             log.error("Redis setString with timeout操作失败, key: {}", key, e);
+            return false;
+        }
+    }
+
+    /**
+     * 检查Redis是否可用
+     * @return Redis是否可用
+     */
+    public boolean isRedisAvailable() {
+        try {
+            // 尝试执行一个简单的Redis操作来验证连接
+            stringRedisTemplate.opsForValue().get("redis:health:check");
+            return true;
+        } catch (Exception e) {
+            log.debug("Redis连接检查失败", e);
+            return false;
         }
     }
 
