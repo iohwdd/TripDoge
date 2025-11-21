@@ -1,23 +1,24 @@
 package com.tripdog.service.impl;
 
 import com.tripdog.common.RedisService;
-import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.common.utils.TokenUtils;
+import com.tripdog.model.vo.UserInfoVO;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.servlet.http.HttpServletRequest;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 用户Session管理服务
- * 基于Redis实现用户登录状态管理，替代HttpSession
- *
- * @author tripdog
+ * 用户Session管理服务，Redis优先，支持本地缓存降级。
  */
 @Slf4j
 @Service
@@ -25,57 +26,52 @@ import java.util.concurrent.TimeUnit;
 public class UserSessionService {
 
     private final RedisService redisService;
+    private final Map<String, SessionEntry> localSessions = new ConcurrentHashMap<>();
+    private final Map<Long, String> localUserTokens = new ConcurrentHashMap<>();
 
-    /**
-     * Session超时时间（30分钟）
-     */
+    @Value("${session.fallback.enabled:true}")
+    private boolean fallbackEnabled;
+
+    @Value("${session.fallback.max-size:1000}")
+    private int fallbackMaxSize;
+
     private static final long SESSION_TIMEOUT = 30;
     private static final String SESSION_KEY_PREFIX = "user:session:";
     private static final String USER_TOKEN_PREFIX = "user:token:";
 
-    /**
-     * 创建用户Session
-     *
-     * @param userInfo 用户信息
-     * @return 生成的token
-     */
     public String createSession(UserInfoVO userInfo) {
-        // 生成唯一的token
-        String token = generateToken();
+        if (userInfo == null || userInfo.getId() == null) {
+            throw new IllegalArgumentException("用户信息不能为空");
+        }
 
-        // 构建Redis key
+        String token = generateToken();
         String sessionKey = SESSION_KEY_PREFIX + token;
         String userTokenKey = USER_TOKEN_PREFIX + userInfo.getId();
 
         try {
-            // 如果用户已经有token，先删除旧的session
-            String existingToken = redisService.getString(userTokenKey);
-            if (existingToken != null) {
-                redisService.delete(SESSION_KEY_PREFIX + existingToken);
-                log.debug("删除用户 {} 的旧session", userInfo.getId());
+            if (redisService.isRedisAvailable()) {
+                String existingToken = redisService.getString(userTokenKey);
+                if (existingToken != null) {
+                    redisService.delete(SESSION_KEY_PREFIX + existingToken);
+                }
+                redisService.setObject(sessionKey, userInfo, SESSION_TIMEOUT, TimeUnit.MINUTES);
+                redisService.setString(userTokenKey, token, SESSION_TIMEOUT, TimeUnit.MINUTES);
+                removeLocalSessionByUserId(userInfo.getId());
+                log.debug("为用户 {} 创建session成功", userInfo.getId());
+                return token;
             }
-
-            // 保存用户信息到Redis，设置过期时间
-            redisService.setObject(sessionKey, userInfo, SESSION_TIMEOUT, TimeUnit.MINUTES);
-
-            // 保存用户ID到token的映射，便于管理
-            redisService.setString(userTokenKey, token, SESSION_TIMEOUT, TimeUnit.MINUTES);
-
-            log.debug("为用户 {} 创建session成功", userInfo.getId());
-            return token;
-
         } catch (Exception e) {
             log.error("创建用户session失败，用户ID: {}", userInfo.getId(), e);
-            throw new RuntimeException("创建用户session失败", e);
         }
+
+        if (!canUseLocalFallback()) {
+            throw new RuntimeException("创建用户session失败，Redis不可用且未启用本地缓存");
+        }
+
+        storeLocalSession(token, userInfo);
+        return token;
     }
 
-    /**
-     * 获取用户Session信息
-     *
-     * @param token 用户token
-     * @return 用户信息，如果session不存在或已过期返回null
-     */
     public UserInfoVO getSession(String token) {
         if (token == null || token.trim().isEmpty()) {
             return null;
@@ -84,25 +80,21 @@ public class UserSessionService {
         String sessionKey = SESSION_KEY_PREFIX + token;
 
         try {
-            UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
-            if (userInfo != null) {
-                // Session续期
-                renewSession(token);
-                log.debug("获取用户session成功，用户ID: {}", userInfo.getId());
+            if (redisService.isRedisAvailable()) {
+                UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
+                if (userInfo != null) {
+                    renewSession(token);
+                    return userInfo;
+                }
+                return null;
             }
-            return userInfo;
-
         } catch (Exception e) {
             log.error("获取用户session失败，token: {}", token, e);
-            return null;
         }
+
+        return getLocalSession(token);
     }
 
-    /**
-     * 续期Session
-     *
-     * @param token 用户token
-     */
     public void renewSession(String token) {
         if (token == null || token.trim().isEmpty()) {
             return;
@@ -111,31 +103,21 @@ public class UserSessionService {
         String sessionKey = SESSION_KEY_PREFIX + token;
 
         try {
-            // 检查session是否存在
-            if (redisService.hasKey(sessionKey)) {
-                // 获取用户信息
+            if (redisService.isRedisAvailable() && Boolean.TRUE.equals(redisService.hasKey(sessionKey))) {
                 UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
                 if (userInfo != null) {
-                    // 重新设置过期时间
                     redisService.expire(sessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
-
-                    // 同时续期用户token映射
-                    String userTokenKey = USER_TOKEN_PREFIX + userInfo.getId();
-                    redisService.expire(userTokenKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
-
-                    log.debug("用户session续期成功，用户ID: {}", userInfo.getId());
+                    redisService.expire(USER_TOKEN_PREFIX + userInfo.getId(), SESSION_TIMEOUT, TimeUnit.MINUTES);
+                    return;
                 }
             }
         } catch (Exception e) {
             log.error("续期用户session失败，token: {}", token, e);
         }
+
+        renewLocalSession(token);
     }
 
-    /**
-     * 删除用户Session（登出）
-     *
-     * @param token 用户token
-     */
     public void removeSession(String token) {
         if (token == null || token.trim().isEmpty()) {
             return;
@@ -144,29 +126,21 @@ public class UserSessionService {
         String sessionKey = SESSION_KEY_PREFIX + token;
 
         try {
-            // 先获取用户信息
-            UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
-
-            // 删除session
-            redisService.delete(sessionKey);
-
-            // 删除用户token映射
-            if (userInfo != null) {
-                String userTokenKey = USER_TOKEN_PREFIX + userInfo.getId();
-                redisService.delete(userTokenKey);
-                log.info("删除用户session成功，用户ID: {}", userInfo.getId());
+            if (redisService.isRedisAvailable()) {
+                UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
+                redisService.delete(sessionKey);
+                if (userInfo != null) {
+                    redisService.delete(USER_TOKEN_PREFIX + userInfo.getId());
+                    log.info("删除用户session成功，用户ID: {}", userInfo.getId());
+                }
             }
-
         } catch (Exception e) {
             log.error("删除用户session失败，token: {}", token, e);
         }
+
+        removeLocalSession(token);
     }
 
-    /**
-     * 删除用户的所有Session
-     *
-     * @param userId 用户ID
-     */
     public void removeUserSessions(Long userId) {
         if (userId == null) {
             return;
@@ -175,84 +149,60 @@ public class UserSessionService {
         String userTokenKey = USER_TOKEN_PREFIX + userId;
 
         try {
-            // 获取用户当前的token
-            String token = redisService.getString(userTokenKey);
-            if (token != null) {
-                String sessionKey = SESSION_KEY_PREFIX + token;
-                redisService.delete(sessionKey);
+            if (redisService.isRedisAvailable()) {
+                String token = redisService.getString(userTokenKey);
+                if (token != null) {
+                    redisService.delete(SESSION_KEY_PREFIX + token);
+                }
+                redisService.delete(userTokenKey);
+                log.info("删除用户所有session成功，用户ID: {}", userId);
             }
-
-            // 删除用户token映射
-            redisService.delete(userTokenKey);
-
-            log.info("删除用户所有session成功，用户ID: {}", userId);
-
         } catch (Exception e) {
             log.error("删除用户所有session失败，用户ID: {}", userId, e);
         }
+
+        removeLocalSessionByUserId(userId);
     }
 
-    /**
-     * 检查Session是否存在且有效
-     *
-     * @param token 用户token
-     * @return 是否有效
-     */
     public boolean isSessionValid(String token) {
         if (token == null || token.trim().isEmpty()) {
             return false;
         }
 
         String sessionKey = SESSION_KEY_PREFIX + token;
-        return redisService.hasKey(sessionKey);
+        if (redisService.isRedisAvailable()) {
+            return Boolean.TRUE.equals(redisService.hasKey(sessionKey));
+        }
+        return hasValidLocalSession(token);
     }
 
-    /**
-     * 获取Session剩余时间（秒）
-     *
-     * @param token 用户token
-     * @return 剩余时间，-1表示session不存在
-     */
     public long getSessionRemainingTime(String token) {
         if (token == null || token.trim().isEmpty()) {
             return -1;
         }
 
         String sessionKey = SESSION_KEY_PREFIX + token;
-        return redisService.getExpire(sessionKey, TimeUnit.SECONDS);
+        if (redisService.isRedisAvailable()) {
+            return redisService.getExpire(sessionKey, TimeUnit.SECONDS);
+        }
+        return getLocalSessionRemainingSeconds(token);
     }
 
-    /**
-     * 生成唯一token
-     */
     private String generateToken() {
         return UUID.randomUUID().toString().replace("-", "") + System.currentTimeMillis();
     }
 
-    // ==================== 用户上下文相关方法 ====================
-
-    /**
-     * 获取当前请求的HttpServletRequest对象
-     *
-     * @return HttpServletRequest对象，如果不在请求上下文中则返回null
-     */
     private HttpServletRequest getCurrentRequest() {
         try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            ServletRequestAttributes attributes =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             return attributes != null ? attributes.getRequest() : null;
         } catch (Exception e) {
             return null;
         }
     }
 
-    /**
-     * 获取当前登录用户信息
-     * 优先从拦截器设置的request属性中获取，如果获取失败则从Redis获取
-     *
-     * @return 当前登录用户信息，如果未登录则返回null
-     */
     public UserInfoVO getCurrentUser() {
-        // 优先从request属性获取（拦截器已经验证并设置）
         HttpServletRequest request = getCurrentRequest();
         if (request != null) {
             Object loginUser = request.getAttribute("loginUser");
@@ -260,65 +210,226 @@ public class UserSessionService {
                 return (UserInfoVO) loginUser;
             }
         }
-
-        // fallback：从Redis获取
-        return getCurrentUserFromRedis();
+        return getCurrentUserSafely();
     }
 
-    /**
-     * 备用方法：从token直接获取用户信息
-     * 当从request属性获取失败时使用
-     */
-    private UserInfoVO getCurrentUserFromRedis() {
+    private UserInfoVO getCurrentUserSafely() {
         try {
             String token = getCurrentToken();
             if (token != null) {
                 return getSession(token);
             }
         } catch (Exception e) {
-            // 记录错误但不影响正常流程
+            log.debug("从Session获取当前用户失败: {}", e.getMessage());
         }
         return null;
     }
 
-    /**
-     * 获取当前用户的token
-     * 优先从拦截器设置的request属性中获取，如果没有则从请求头获取
-     *
-     * @return 当前用户的token，如果未登录则返回null
-     */
     public String getCurrentToken() {
         HttpServletRequest request = getCurrentRequest();
         if (request != null) {
-            // 优先从request属性获取（拦截器已设置）
-            String token = (String) request.getAttribute("userToken");
-            if (token != null) {
-                return token;
+            String tokenAttr = (String) request.getAttribute("userToken");
+            if (tokenAttr != null && !tokenAttr.trim().isEmpty()) {
+                return tokenAttr;
             }
-
-            // fallback：从请求头获取
             return TokenUtils.extractToken(request);
         }
         return null;
     }
 
-    /**
-     * 获取当前用户ID
-     *
-     * @return 当前用户ID，如果未登录则返回null
-     */
     public Long getCurrentUserId() {
         UserInfoVO user = getCurrentUser();
         return user != null ? user.getId() : null;
     }
 
-    /**
-     * 获取当前用户昵称
-     *
-     * @return 当前用户昵称，如果未登录则返回null
-     */
     public String getCurrentUserNickname() {
         UserInfoVO user = getCurrentUser();
         return user != null ? user.getNickname() : null;
+    }
+
+    @Scheduled(fixedDelayString = "${session.fallback.cleanup-interval-ms:60000}")
+    public void cleanupLocalSessions() {
+        if (!canUseLocalFallback()) {
+            localSessions.clear();
+            localUserTokens.clear();
+            return;
+        }
+
+        if (localSessions.isEmpty()) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        localSessions.forEach((token, entry) -> {
+            if (entry == null || entry.isExpired(now)) {
+                removeLocalSession(token, entry);
+            }
+        });
+
+        enforceLocalCacheLimit();
+    }
+
+    private void storeLocalSession(String token, UserInfoVO userInfo) {
+        enforceLocalCacheLimit();
+        SessionEntry entry = new SessionEntry(userInfo, calculateExpireAt());
+        localSessions.put(token, entry);
+        String oldToken = localUserTokens.put(userInfo.getId(), token);
+        if (oldToken != null && !oldToken.equals(token)) {
+            localSessions.remove(oldToken);
+        }
+        log.warn("Redis不可用，使用本地Session缓存，用户ID: {}", userInfo.getId());
+    }
+
+    private UserInfoVO getLocalSession(String token) {
+        SessionEntry entry = localSessions.get(token);
+        if (entry == null) {
+            return null;
+        }
+
+        long now = System.currentTimeMillis();
+        if (entry.isExpired(now)) {
+            removeLocalSession(token, entry);
+            return null;
+        }
+
+        entry.renew(calculateExpireAt());
+        return entry.getUserInfo();
+    }
+
+    private void renewLocalSession(String token) {
+        SessionEntry entry = localSessions.get(token);
+        if (entry == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (entry.isExpired(now)) {
+            removeLocalSession(token, entry);
+            return;
+        }
+        entry.renew(calculateExpireAt());
+    }
+
+    private void removeLocalSession(String token) {
+        SessionEntry entry = localSessions.remove(token);
+        if (entry != null && entry.getUserInfo() != null) {
+            localUserTokens.remove(entry.getUserInfo().getId(), token);
+        }
+    }
+
+    private void removeLocalSession(String token, SessionEntry entry) {
+        if (entry == null) {
+            removeLocalSession(token);
+            return;
+        }
+        if (localSessions.remove(token, entry) && entry.getUserInfo() != null) {
+            localUserTokens.remove(entry.getUserInfo().getId(), token);
+        }
+    }
+
+    private void removeLocalSessionByUserId(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        String token = localUserTokens.remove(userId);
+        if (token != null) {
+            localSessions.remove(token);
+        }
+    }
+
+    private boolean hasValidLocalSession(String token) {
+        if (!canUseLocalFallback()) {
+            return false;
+        }
+        SessionEntry entry = localSessions.get(token);
+        if (entry == null) {
+            return false;
+        }
+        if (entry.isExpired(System.currentTimeMillis())) {
+            removeLocalSession(token, entry);
+            return false;
+        }
+        return true;
+    }
+
+    private long getLocalSessionRemainingSeconds(String token) {
+        if (!canUseLocalFallback()) {
+            return -1L;
+        }
+        SessionEntry entry = localSessions.get(token);
+        if (entry == null) {
+            return -1L;
+        }
+        long remainingMillis = entry.getExpireAt() - System.currentTimeMillis();
+        if (remainingMillis <= 0) {
+            removeLocalSession(token, entry);
+            return -1L;
+        }
+        return TimeUnit.MILLISECONDS.toSeconds(remainingMillis);
+    }
+
+    private void enforceLocalCacheLimit() {
+        if (!canUseLocalFallback()) {
+            localSessions.clear();
+            localUserTokens.clear();
+            return;
+        }
+        while (localSessions.size() >= fallbackMaxSize && fallbackMaxSize > 0) {
+            String tokenToRemove = findOldestToken();
+            if (tokenToRemove == null) {
+                break;
+            }
+            log.warn("本地session缓存达到上限，移除token={}", tokenToRemove);
+            removeLocalSession(tokenToRemove);
+        }
+    }
+
+    private String findOldestToken() {
+        long oldestExpire = Long.MAX_VALUE;
+        String oldestToken = null;
+        for (Map.Entry<String, SessionEntry> entry : localSessions.entrySet()) {
+            SessionEntry value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+            if (value.getExpireAt() < oldestExpire) {
+                oldestExpire = value.getExpireAt();
+                oldestToken = entry.getKey();
+            }
+        }
+        return oldestToken;
+    }
+
+    private long calculateExpireAt() {
+        return System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(SESSION_TIMEOUT);
+    }
+
+    private boolean canUseLocalFallback() {
+        return fallbackEnabled && fallbackMaxSize > 0;
+    }
+
+    private static class SessionEntry {
+        private final UserInfoVO userInfo;
+        private volatile long expireAt;
+
+        SessionEntry(UserInfoVO userInfo, long expireAt) {
+            this.userInfo = userInfo;
+            this.expireAt = expireAt;
+        }
+
+        UserInfoVO getUserInfo() {
+            return userInfo;
+        }
+
+        long getExpireAt() {
+            return expireAt;
+        }
+
+        void renew(long newExpireAt) {
+            this.expireAt = newExpireAt;
+        }
+
+        boolean isExpired(long now) {
+            return now >= expireAt;
+        }
     }
 }

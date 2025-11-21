@@ -177,3 +177,10 @@ management:
       show-details: always
     metrics:
       enabled: true
+
+# Session 本地fallback默认配置
+session:
+  fallback:
+    enabled: ${SESSION_FALLBACK_ENABLED:true}
+    max-size: ${SESSION_FALLBACK_MAX_SIZE:1000}
+    cleanup-interval-ms: ${SESSION_FALLBACK_CLEANUP_INTERVAL_MS:60000}

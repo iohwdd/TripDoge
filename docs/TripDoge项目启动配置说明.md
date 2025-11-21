@@ -24,6 +24,10 @@ REDIS_HOST=your_redis_host        # (必需)
 REDIS_PORT=6379                   # (必需)
 REDIS_PASSWORD=your_password      # (必需)
 REDIS_DATABASE=0                  # (必需)
+# 会话本地fallback（Redis断链时自动启用）
+SESSION_FALLBACK_ENABLED=true
+SESSION_FALLBACK_MAX_SIZE=1000
+SESSION_FALLBACK_CLEANUP_INTERVAL_MS=60000
 
 # AI 服务 (DashScope通义千问)
 DASHSCOPE_API_KEY=your_api_key    # (必需)
@@ -59,6 +63,10 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080  # 允许的前
 CORS_ALLOW_CREDENTIALS=true     # 是否允许凭证，默认true
 
 # 其他配置(已有默认值，一般无需修改)
+# 会话fallback也可通过以下变量覆盖默认值
+# SESSION_FALLBACK_ENABLED=true
+# SESSION_FALLBACK_MAX_SIZE=1000
+# SESSION_FALLBACK_CLEANUP_INTERVAL_MS=60000
 # SERVER_IP=localhost            # 服务器IP，用于PostgreSQL连接默认值
 ```
 
