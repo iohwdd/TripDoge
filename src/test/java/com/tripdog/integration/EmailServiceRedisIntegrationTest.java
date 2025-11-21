@@ -3,6 +3,7 @@ package com.tripdog.integration;
 import com.tripdog.common.RedisService;
 import com.tripdog.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 验证P0-2修复：验证码存储迁移到Redis
  * 使用Testcontainers提供Redis环境
  */
+@Disabled("Redis integration test requires Testcontainers environment; enable when CI supports Docker")
 //@SpringBootTest
 //@ActiveProfiles("test")
 //@Testcontainers
