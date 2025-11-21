@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: trip-doge-test
+  profiles:
+    active: test
+  
+  # 测试数据库配置（使用H2内存数据库）
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  # Redis配置（测试环境可以使用嵌入式Redis或Mock）
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 15  # 使用测试数据库
+      timeout: 5s
+  
+  # 邮件配置（测试环境禁用实际发送）
+  mail:
+    host: localhost
+    port: 25
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+
+# 文件上传配置
+servlet:
+  multipart:
+    max-file-size: 100MB
+    max-request-size: 100MB
+    file-size-threshold: 10MB
+
+# 日志配置
+logging:
+  level:
+    root: WARN
+    com.tripdog: DEBUG
+    org.springframework: WARN
+
