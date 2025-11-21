@@ -1,8 +1,6 @@
 spring:
   application:
     name: trip-doge-test
-  profiles:
-    active: test
   
   # 测试数据库配置（使用H2内存数据库）
   datasource:
@@ -44,4 +42,3 @@ logging:
     root: WARN
     com.tripdog: DEBUG
     org.springframework: WARN
-
