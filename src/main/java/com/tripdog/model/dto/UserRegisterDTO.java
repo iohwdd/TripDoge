@@ -4,6 +4,7 @@ import lombok.Data;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import com.tripdog.common.validator.Password;
 
 /**
  * 用户注册DTO
@@ -22,6 +23,7 @@ public class UserRegisterDTO {
      * 密码
      */
     @NotBlank(message = "密码不能为空")
+    @Password
     private String password;
 
     /**
