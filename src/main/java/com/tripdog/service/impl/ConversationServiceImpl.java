@@ -1,6 +1,8 @@
 package com.tripdog.service.impl;
 
 import com.tripdog.ai.CustomerChatMemoryProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.tripdog.common.Constants;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.mapper.ChatHistoryMapper;
@@ -29,6 +31,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class ConversationServiceImpl implements ConversationService {
+    private static final Logger log = LoggerFactory.getLogger(ConversationServiceImpl.class);
     private final ConversationMapper conversationMapper;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;
@@ -94,7 +97,7 @@ public class ConversationServiceImpl implements ConversationService {
      */
     @Override
     @Transactional
-    public void resetConversationContext(String conversationId) {
+    public boolean resetConversationContext(String conversationId, Long userId) {
         Map<String, ChatMemory> chatMemoryMap = chatMemoryProvider.getChatMemoryMap();
         ChatMemory chatMemory = chatMemoryMap.get(conversationId);
         ChatMessage systemMessage = chatMemory.messages().removeFirst();
@@ -103,10 +106,20 @@ public class ConversationServiceImpl implements ConversationService {
 
         // 更新会话信息 - 根据conversationId查找会话
         ConversationDO existingConversation = conversationMapper.selectByConversationId(conversationId);
-        if (existingConversation != null) {
-            existingConversation.setUpdatedAt(LocalDateTime.now());
-            conversationMapper.updateById(existingConversation);
+        if (existingConversation == null) {
+            log.warn("重置会话失败，会话不存在: conversationId={}", conversationId);
+            return false;
         }
+
+        if (!existingConversation.getUserId().equals(userId)) {
+            log.warn("重置会话失败，无权限: conversationId={}, ownerId={}, requesterId={}",
+                conversationId, existingConversation.getUserId(), userId);
+            return false;
+        }
+
+        existingConversation.setUpdatedAt(LocalDateTime.now());
+        conversationMapper.updateById(existingConversation);
+        return true;
     }
 
     /**
