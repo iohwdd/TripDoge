@@ -23,4 +23,8 @@ public class ThreadLocalUtils {
         threadLocal.get().remove(key);
     }
 
+    public static void clear() {
+        threadLocal.get().clear();
+    }
+
 }
