@@ -1,7 +1,10 @@
 package com.tripdog.controller;
 
+import com.tripdog.common.Constants;
+
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
+import lombok.extern.slf4j.Slf4j;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.vo.RoleInfoVO;
@@ -33,6 +36,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/roles")
 @RequiredArgsConstructor
+@Slf4j
 public class RoleController {
     @Value("${minio.bucket-name}")
     private String bucketName;
@@ -68,19 +72,7 @@ public class RoleController {
             }
             roleInfoVO.setConversationId(conversation.getConversationId());
             // 转化头像url，如果 MinIO 不可用则回退到默认地址
-            try {
-                String url = minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                        .method(Method.GET)
-                        .bucket(bucketName)
-                        .object(roleInfoVO.getAvatarUrl())
-                        .expiry(60 * 60)
-                        .build()
-                );
-                roleInfoVO.setAvatarUrl(url);
-            } catch (Exception e) {
-                // 开发环境可能没有上传默认头像，忽略异常继续返回原始字段
-            }
+            roleInfoVO.setAvatarUrl(resolveAvatarUrl(roleInfoVO.getAvatarUrl(), "ROLE_LIST", roleInfoVO.getId()));
         });
 
         return Result.success(roleInfoList);
@@ -119,23 +111,28 @@ public class RoleController {
         // 获取角色列表（不包含会话信息）
         List<RoleInfoVO> roleInfoList = roleService.getRoleInfoList();
         // 处理头像URL（如果MinIO可用）
-        roleInfoList.forEach(roleInfoVO -> {
-            try {
-                String url = minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                        .method(Method.GET)
-                        .bucket(bucketName)
-                        .object(roleInfoVO.getAvatarUrl())
-                        .expiry(60 * 60)
-                        .build()
-                );
-                roleInfoVO.setAvatarUrl(url);
-            } catch (Exception e) {
-                // 如果MinIO不可用，使用原始URL或默认头像
-                // 不抛出异常，允许继续返回角色列表
-            }
-        });
+        roleInfoList.forEach(roleInfoVO -> roleInfoVO.setAvatarUrl(
+            resolveAvatarUrl(roleInfoVO.getAvatarUrl(), "PUBLIC_ROLE_LIST", roleInfoVO.getId())));
         return Result.success(roleInfoList);
     }
 
+    private String resolveAvatarUrl(String avatarKey, String scene, Long roleId) {
+        if (avatarKey == null || avatarKey.isEmpty()) {
+            return Constants.DEFAULT_AVATAR;
+        }
+        try {
+            return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(bucketName)
+                    .object(avatarKey)
+                    .expiry(60 * 60)
+                    .build()
+            );
+        } catch (Exception e) {
+            log.warn("生成角色头像URL失败，使用默认头像: scene={}, roleId={}, avatarKey={}, error={}",
+                scene, roleId, avatarKey, e.getMessage());
+            return Constants.DEFAULT_AVATAR;
+        }
+    }
 }
