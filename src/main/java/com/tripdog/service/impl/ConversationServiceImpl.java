@@ -13,6 +13,8 @@ import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.builder.ConversationBuilder;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.memory.ChatMemory;

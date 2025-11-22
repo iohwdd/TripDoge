@@ -84,7 +84,10 @@ public class ChatController {
             return Result.error(ErrorCode.CONVERSATION_NOT_FOUND);
         }
 
-        conversationServiceImpl.resetConversationContext(conversation.getConversationId());
+        boolean resetOk = conversationServiceImpl.resetConversationContext(conversation.getConversationId(), userId);
+        if (!resetOk) {
+            return Result.error(ErrorCode.NO_AUTH);
+        }
 
         return Result.success();
     }
