@@ -117,7 +117,7 @@ public class UserController {
     private void logLoginFailure(UserLoginDTO loginDTO, HttpServletRequest request, RuntimeException e) {
         String clientIp = request != null ? request.getRemoteAddr() : "unknown";
         String userAgent = request != null ? request.getHeader("User-Agent") : "unknown";
-        log.warn("LOGIN_FAIL email={}, ip={}, userAgent={}, reason={}",
+        log.warn("LOGIN_FAIL email={}, ip={}, userAgent={}, reason= {}",
             loginDTO.getEmail(), clientIp, userAgent, e.getMessage());
     }
 
