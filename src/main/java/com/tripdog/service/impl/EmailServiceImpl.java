@@ -12,6 +12,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,6 +28,7 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
     private final RedisService redisService;
+    private final Map<String, CodeInfo> localCodeStorage = new ConcurrentHashMap<>();
 
     @Value("${spring.mail.username}")
     private String fromEmail;
@@ -96,9 +100,8 @@ public class EmailServiceImpl implements EmailService {
         boolean stored = redisService.setString(codeKey, email, CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
         
         if (!stored) {
-            log.warn("验证码存储到Redis失败，尝试使用本地内存存储: email={}, code={}", email, code);
-            // Redis不可用时的降级处理：如果Redis存储失败，记录警告但继续流程
-            // 注意：这种情况下多实例部署时验证码不共享，但至少单实例可用
+            log.warn("验证码存储到Redis失败，使用本地缓存: email={}, code={}", email, code);
+            localCodeStorage.put(code, new CodeInfo(email, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(CODE_EXPIRE_MINUTES)));
         }
 
         // 异步发送邮件，不阻塞请求
@@ -122,29 +125,34 @@ public class EmailServiceImpl implements EmailService {
         
         // 从Redis获取验证码对应的邮箱
         String storedEmail = redisService.getString(codeKey);
-        
-        if (storedEmail == null) {
+        CodeInfo localInfo = localCodeStorage.get(code);
+        if (storedEmail == null && localInfo == null) {
             log.warn("验证码不存在或已过期: code={}", code);
             return false;
         }
 
-        // 验证邮箱是否匹配
+        if (storedEmail == null && localInfo != null) {
+            if (localInfo.expireAt <= System.currentTimeMillis()) {
+                localCodeStorage.remove(code);
+                log.warn("验证码已过期(本地缓存): code={}", code);
+                return false;
+            }
+            storedEmail = localInfo.email;
+        }
+
         if (!storedEmail.equals(email)) {
             log.warn("验证码对应邮箱不匹配: code={}, expected={}, actual={}", code, storedEmail, email);
             return false;
         }
 
-        // 验证成功后删除验证码（原子操作，防止重放攻击）
-        // 使用Redis的原子删除，确保验证码只能使用一次
         Boolean deleted = redisService.delete(codeKey);
-        if (Boolean.TRUE.equals(deleted)) {
-            log.info("验证码验证成功并已删除: email={}, code={}", email, code);
-            return true;
+        localCodeStorage.remove(code);
+        if (!Boolean.TRUE.equals(deleted)) {
+            log.warn("Redis删除验证码失败，已从本地缓存移除: email={}, code={}", email, code);
         } else {
-            // 删除失败可能表示验证码已被使用（并发场景）
-            log.warn("验证码删除失败，可能已被使用: email={}, code={}", email, code);
-            return false;
+            log.info("验证码验证成功并已删除: email={}, code={}", email, code);
         }
+        return true;
     }
 
     /**
@@ -199,15 +207,25 @@ public class EmailServiceImpl implements EmailService {
      * 每10分钟执行一次
      * 注意：Redis设置了过期时间，会自动清理，此方法主要用于监控和日志
      */
-    @Scheduled(fixedDelay = 10 * 60 * 1000)
+    @Scheduled(fixedDelay = 5 * 60 * 1000)
     public void logCodeStatistics() {
-        // Redis设置了过期时间，会自动清理过期验证码
-        // 这里主要用于监控和日志记录
         if (redisService.isRedisAvailable()) {
             log.debug("验证码存储使用Redis，过期验证码会自动清理");
         } else {
-            log.warn("Redis不可用，验证码存储可能受影响");
+            log.warn("Redis不可用，验证码将使用本地缓存，当前缓存量={}", localCodeStorage.size());
         }
+
+        long now = System.currentTimeMillis();
+        localCodeStorage.entrySet().removeIf(entry -> {
+            boolean expired = entry.getValue().expireAt <= now;
+            if (expired) {
+                log.debug("清理过期验证码(本地缓存): code={}", entry.getKey());
+            }
+            return expired;
+        });
     }
+
+    private record CodeInfo(String email, long expireAt) {}
+
 
 }
