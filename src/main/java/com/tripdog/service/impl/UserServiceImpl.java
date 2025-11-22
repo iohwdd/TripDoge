@@ -93,8 +93,9 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException(ErrorCode.USER_REGISTER_FAILED.getMessage());
         }
 
-        // 5. 返回用户信息
-        return UserConverter.INSTANCE.toUserInfoVO(userDO);
+        // 5. 返回最新用户信息（携带数据库生成字段）
+        UserDO persisted = userMapper.selectById(userDO.getId());
+        return persisted != null ? UserConverter.INSTANCE.toUserInfoVO(persisted) : UserConverter.INSTANCE.toUserInfoVO(userDO);
     }
 
     @Override
