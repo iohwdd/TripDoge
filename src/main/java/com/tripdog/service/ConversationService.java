@@ -35,7 +35,7 @@ public interface ConversationService {
      *
      * @param conversationId 会话ID
      */
-    void resetConversationContext(String conversationId);
+    boolean resetConversationContext(String conversationId, Long userId);
 
     /**
      * 获取会话的上下文消息（排除重置点之前的消息）
