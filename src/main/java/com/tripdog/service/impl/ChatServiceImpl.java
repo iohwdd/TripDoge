@@ -57,7 +57,7 @@ public class ChatServiceImpl implements ChatService {
             // 2. 获取角色信息
             RoleDO role = roleMapper.selectById(roleId);
             if (role == null) {
-                emitter.completeWithError(new RuntimeException("角色不存在"));
+                safeCompleteWithError(emitter, new RuntimeException("角色不存在"), "ROLE_NOT_FOUND", roleId, userId);
                 return emitter;
             }
 
@@ -77,7 +77,8 @@ public class ChatServiceImpl implements ChatService {
                     FileValidationUtils.validateImageFile(file);
                 } catch (IllegalArgumentException e) {
                     log.warn("图片文件验证失败: {}", e.getMessage());
-                    emitter.completeWithError(new RuntimeException("图片文件验证失败: " + e.getMessage()));
+                    safeCompleteWithError(emitter, new RuntimeException("图片文件验证失败: " + e.getMessage()),
+                        "IMAGE_INVALID", roleId, userId);
                     return emitter;
                 }
                 
@@ -100,11 +101,7 @@ public class ChatServiceImpl implements ChatService {
                 } catch (IOException e) {
                     log.error("发送SSE部分响应失败，客户端可能已断开连接", e);
                     // 客户端断开连接时，completeWithError会抛出异常，需要捕获
-                    try {
-                        emitter.completeWithError(e);
-                    } catch (Exception ex) {
-                        log.debug("SSE连接已关闭，无需再次关闭", ex);
-                    }
+                    safeCompleteWithError(emitter, e, "PARTIAL_SEND_ERROR", roleId, userId);
                 }
             }).onCompleteResponse((data) -> {
                 try {
@@ -115,35 +112,22 @@ public class ChatServiceImpl implements ChatService {
                         .data("[DONE]")
                         .id(String.valueOf(System.currentTimeMillis()))
                         .name("done"));
-                    emitter.complete();
+                    safeComplete(emitter, "STREAM_DONE", roleId, userId);
                     log.debug("SSE流式响应完成: conversationId={}", conversation.getConversationId());
                 } catch (IOException e) {
                     log.error("发送SSE完成响应失败，客户端可能已断开连接", e);
-                    // 客户端断开连接时，completeWithError会抛出异常，需要捕获
-                    try {
-                        emitter.completeWithError(e);
-                    } catch (Exception ex) {
-                        log.debug("SSE连接已关闭，无需再次关闭", ex);
-                    }
+                    safeCompleteWithError(emitter, e, "COMPLETE_SEND_ERROR", roleId, userId);
                 }
             }).onError((ex) -> {
                 log.error("AI聊天流处理异常", ex);
-                try {
-                    emitter.completeWithError(ex);
-                } catch (Exception e) {
-                    log.debug("SSE连接已关闭，无法发送错误", e);
-                }
+                safeCompleteWithError(emitter, ex, "STREAM_ERROR", roleId, userId);
             }).start();
             
             // 添加超时处理回调
             emitter.onTimeout(() -> {
                 log.warn("SSE连接超时: conversationId={}, roleId={}, userId={}", 
                     conversation.getConversationId(), roleId, userId);
-                try {
-                    emitter.complete();
-                } catch (Exception e) {
-                    log.debug("SSE连接已关闭，无法完成超时处理", e);
-                }
+                safeComplete(emitter, "TIMEOUT", roleId, userId);
             });
             
             // 添加完成回调（正常完成或异常完成）
@@ -158,17 +142,32 @@ public class ChatServiceImpl implements ChatService {
             emitter.onError((ex) -> {
                 log.error("SSE连接发生错误: conversationId={}, roleId={}, userId={}, error={}", 
                     conversation.getConversationId(), roleId, userId, ex.getMessage(), ex);
-                // 清理ThreadLocal
                 ThreadLocalUtils.remove(ROLE_ID);
             });
 
         } catch (Exception e) {
             log.error("聊天服务处理异常", e);
-            emitter.completeWithError(e);
+            safeCompleteWithError(emitter, e, "UNEXPECTED_ERROR", roleId, userId);
         } finally {
             ThreadLocalUtils.remove(ROLE_ID);
         }
 
         return emitter;
+    }
+
+    private void safeComplete(SseEmitter emitter, String reason, Long roleId, Long userId) {
+        try {
+            emitter.complete();
+        } catch (Exception ex) {
+            log.debug("SSE连接已关闭，无法完成: reason={}, roleId={}, userId={}", reason, roleId, userId, ex);
+        }
+    }
+
+    private void safeCompleteWithError(SseEmitter emitter, Throwable throwable, String reason, Long roleId, Long userId) {
+        try {
+            emitter.completeWithError(throwable);
+        } catch (Exception ex) {
+            log.debug("SSE连接已关闭，无法发送错误: reason={}, roleId={}, userId={}", reason, roleId, userId, ex);
+        }
     }
 }
