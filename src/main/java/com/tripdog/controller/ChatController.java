@@ -78,6 +78,7 @@ public class ChatController {
         Long userId = userInfoVO.getId();
         ConversationDO conversation = conversationServiceImpl.findConversationByUserAndRole(userId, roleId);
         if (conversation == null) {
+            log.warn("尝试重置不存在的会话: userId={}, roleId={}", userId, roleId);
             return Result.error(ErrorCode.CONVERSATION_NOT_FOUND);
         }
 
