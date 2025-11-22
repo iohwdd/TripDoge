@@ -11,6 +11,7 @@ import com.tripdog.service.EmailService;
 import com.tripdog.service.UserService;
 import com.tripdog.service.impl.UserSessionService;
 import com.tripdog.common.utils.TokenUtils;
+import org.slf4j.MDC;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -117,8 +118,13 @@ public class UserController {
     private void logLoginFailure(UserLoginDTO loginDTO, HttpServletRequest request, RuntimeException e) {
         String clientIp = request != null ? request.getRemoteAddr() : "unknown";
         String userAgent = request != null ? request.getHeader("User-Agent") : "unknown";
-        log.warn("LOGIN_FAIL email={}, ip={}, userAgent={}, reason= {}",
-            loginDTO.getEmail(), clientIp, userAgent, e.getMessage());
+        log.warn("LOGIN_FAIL email={}, ip={}, uri=/user/login, ua={}, reason={}, traceId={}",
+            loginDTO.getEmail(), clientIp, userAgent, e.getMessage(), getTraceId());
+    }
+
+    private String getTraceId() {
+        String traceId = MDC.get("traceId");
+        return traceId != null ? traceId : "N/A";
     }
 
     /**
