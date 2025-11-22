@@ -2,9 +2,9 @@ package com.tripdog.model.dto;
 
 import lombok.Data;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import com.tripdog.common.validator.Password;
+import com.tripdog.common.validator.EmailFormat;
 
 /**
  * 用户注册DTO
@@ -15,7 +15,7 @@ public class UserRegisterDTO {
     /**
      * 邮箱
      */
-    @Email(message = "邮箱格式不正确")
+    @EmailFormat
     @NotBlank(message = "邮箱不能为空")
     private String email;
 
