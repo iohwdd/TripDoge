@@ -135,21 +135,21 @@ public class ChatServiceImpl implements ChatService {
                 log.debug("SSE连接已完成: conversationId={}, roleId={}, userId={}", 
                     conversation.getConversationId(), roleId, userId);
                 // 清理ThreadLocal（虽然finally中也会清理，但这里确保及时清理）
-                ThreadLocalUtils.remove(ROLE_ID);
+                ThreadLocalUtils.clear();
             });
             
             // 添加错误回调
             emitter.onError((ex) -> {
                 log.error("SSE连接发生错误: conversationId={}, roleId={}, userId={}, error={}", 
                     conversation.getConversationId(), roleId, userId, ex.getMessage(), ex);
-                ThreadLocalUtils.remove(ROLE_ID);
+                ThreadLocalUtils.clear();
             });
 
         } catch (Exception e) {
             log.error("聊天服务处理异常", e);
             safeCompleteWithError(emitter, e, "UNEXPECTED_ERROR", roleId, userId);
         } finally {
-            ThreadLocalUtils.remove(ROLE_ID);
+            ThreadLocalUtils.clear();
         }
 
         return emitter;
