@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -104,6 +105,8 @@ public class DocController {
         }
         
         String fileId = UUID.randomUUID().toString();
+        String objectKey = null;
+        boolean docRecordCreated = false;
 
         // 设置元数据到ThreadLocal，用于向量存储时添加
         ThreadLocalUtils.set(ROLE_ID, uploadDTO.getRoleId());
@@ -118,6 +121,7 @@ public class DocController {
                 userInfoVO.getId(),
                 "/doc"
             );
+            objectKey = fileUploadDTO.getObjectKey();
 
             // 保存文档信息到数据库
             DocDO docDO = new DocDO();
@@ -130,8 +134,10 @@ public class DocController {
 
             if (!docService.saveDoc(docDO)) {
                 log.error("保存文档信息到数据库失败: {}", docDO);
-                return Result.error(ErrorCode.SYSTEM_ERROR);
+                cleanupUploadedDocument(objectKey, fileId, false);
+                return Result.error(ErrorCode.SYSTEM_ERROR, "保存文档信息失败，已回滚上传");
             }
+            docRecordCreated = true;
 
             // 从MinIO下载文件到本地临时目录用于解析（避免双重写入）
             // 注意：这里需要先从MinIO下载，因为Apache Tika需要本地文件路径
@@ -190,12 +196,14 @@ public class DocController {
                 if (vectorizationSuccess) {
                     return Result.success(uploadResult);
                 } else {
-                    // 向量化失败，返回警告信息
-                    // 使用自定义消息，前端可以根据vectorizationSuccess判断
-                    String message = isConfigError 
-                        ? "文档上传成功，但向量化功能未配置，无法进行AI检索" 
-                        : "文档上传成功，但向量化失败，无法进行AI检索";
-                    
+                    if (Boolean.FALSE.equals(isConfigError)) {
+                        log.warn("文档解析失败，执行回滚: fileId={}, fileName={}", fileId, file.getOriginalFilename());
+                        cleanupUploadedDocument(objectKey, fileId, true);
+                        return Result.error(ErrorCode.SYSTEM_ERROR, "文档解析失败，上传已回滚，请稍后重试");
+                    }
+
+                    // 向量化失败（配置问题），返回警告信息
+                    String message = "文档上传成功，但向量化功能未配置，无法进行AI检索";
                     return Result.success(message, uploadResult);
                 }
             } finally {
@@ -212,8 +220,10 @@ public class DocController {
                 }
             }
         } catch (Exception e) {
-            log.error("文档上传处理异常", e);
-            return Result.error(ErrorCode.SYSTEM_ERROR);
+            log.error("文档上传处理异常，将回滚已上传文件: fileId={}, objectKey={}, error={}",
+                fileId, objectKey, e.getMessage(), e);
+            cleanupUploadedDocument(objectKey, fileId, docRecordCreated);
+            return Result.error(ErrorCode.SYSTEM_ERROR, "文档上传失败，已回滚，请稍后重试");
         } finally {
             ThreadLocalUtils.remove(ROLE_ID);
             ThreadLocalUtils.remove(FILE_ID);
@@ -515,5 +525,30 @@ public class DocController {
         }
         
         return message.toString();
+    }
+
+    private void cleanupUploadedDocument(String objectKey, String fileId, boolean docRecordCreated) {
+        if (docRecordCreated && StringUtils.hasText(fileId)) {
+            try {
+                boolean removed = docService.deleteDoc(fileId);
+                log.debug("回滚文档记录: fileId={}, success={}", fileId, removed);
+            } catch (Exception ex) {
+                log.warn("回滚文档记录失败: fileId={}, error={}", fileId, ex.getMessage());
+            }
+        }
+
+        if (StringUtils.hasText(objectKey)) {
+            try {
+                minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                        .bucket(minioConfig.getBucketName())
+                        .object(objectKey)
+                        .build()
+                );
+                log.debug("回滚MinIO文件成功: objectKey={}", objectKey);
+            } catch (Exception ex) {
+                log.warn("回滚MinIO文件失败: objectKey={}, error={}", objectKey, ex.getMessage());
+            }
+        }
     }
 }
