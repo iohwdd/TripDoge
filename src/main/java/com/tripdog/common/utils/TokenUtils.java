@@ -74,8 +74,12 @@ public class TokenUtils {
             return false;
         }
 
-        // token应该是32位UUID去掉横线 + 13位时间戳，总共45位
-        return token.length() >= 32 && token.matches("^[a-zA-Z0-9]+$");
+        // token应该是32位UUID去掉横线 + 时间戳，总共 >=45 位
+        if (token.length() < 45) {
+            return false;
+        }
+
+        return token.matches("^[a-fA-F0-9]{32}[0-9]{13,}$");
     }
 
     /**

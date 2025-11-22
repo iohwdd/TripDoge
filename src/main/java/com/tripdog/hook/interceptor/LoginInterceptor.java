@@ -43,14 +43,16 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 从请求中提取token
         String token = TokenUtils.extractToken(request);
         if (token == null) {
-            log.warn("TOKEN_MISSING ip={}, uri={}", request.getRemoteAddr(), requestURI);
+            log.warn("TOKEN_MISSING ip={}, uri={}, ua={}",
+                request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"));
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
 
         // 验证token格式
         if (!TokenUtils.isValidTokenFormat(token)) {
-            log.warn("TOKEN_INVALID_FORMAT token={}, ip={}, uri={}", token, request.getRemoteAddr(), requestURI);
+            log.warn("TOKEN_INVALID_FORMAT token={}, ip={}, uri={}, ua={}",
+                token, request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"));
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
@@ -58,7 +60,8 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 获取用户Session信息
         UserInfoVO loginUser = userSessionService.getSession(token);
         if (loginUser == null) {
-            log.warn("TOKEN_SESSION_MISSING token={}, ip={}, uri={}", token, request.getRemoteAddr(), requestURI);
+            log.warn("TOKEN_SESSION_MISSING token={}, ip={}, uri={}, ua={}",
+                token, request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"));
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
