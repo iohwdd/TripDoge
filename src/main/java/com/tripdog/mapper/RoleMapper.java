@@ -47,4 +47,6 @@ public interface RoleMapper {
      * 查询启用状态的角色列表
      */
     List<RoleDO> selectActiveRoles();
+
+    List<RoleDO> selectActiveRolesPaged(@Param("offset") int offset, @Param("limit") int limit);
 }

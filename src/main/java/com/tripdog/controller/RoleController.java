@@ -6,6 +6,7 @@ import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import com.tripdog.mapper.ConversationMapper;
+import com.tripdog.model.dto.RoleListQueryDTO;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.vo.RoleInfoVO;
 import com.tripdog.model.vo.RoleDetailVO;
@@ -56,14 +57,14 @@ public class RoleController {
             @ApiResponse(responseCode = "10105", description = "用户未登录")
     })
     @PostMapping("/list")
-    public Result<List<RoleInfoVO>> getActiveRoles() {
+    public Result<List<RoleInfoVO>> getActiveRoles(@RequestBody(required = false) RoleListQueryDTO queryDTO) {
         // 从用户会话服务获取当前登录用户信息
         UserInfoVO userInfo = userSessionService.getCurrentUser();
         if(userInfo == null) {
             return Result.error(ErrorCode.USER_NOT_LOGIN);
         }
         // 检查所有角色是否已创建好对话
-        List<RoleInfoVO> roleInfoList = roleService.getRoleInfoList();
+        List<RoleInfoVO> roleInfoList = queryDTO == null ? roleService.getRoleInfoList() : roleService.getRoleInfoList(queryDTO);
         roleInfoList.forEach(roleInfoVO -> {
             ConversationDO conversation = conversationService.findConversationByUserAndRole(
                 userInfo.getId(), roleInfoVO.getId());

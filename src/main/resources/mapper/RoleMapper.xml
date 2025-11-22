@@ -78,4 +78,9 @@
         SELECT * FROM t_role WHERE status = 1 ORDER BY sort_order ASC
     </select>
 
+    <select id="selectActiveRolesPaged" parameterType="map" resultMap="BaseResultMap">
+        SELECT * FROM t_role WHERE status = 1 ORDER BY sort_order ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
 </mapper>
