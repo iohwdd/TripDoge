@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.tripdog.mapper.RoleMapper;
 import com.tripdog.model.converter.RoleConverter;
+import com.tripdog.model.dto.RoleListQueryDTO;
 import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.vo.RoleInfoVO;
 import com.tripdog.model.vo.RoleDetailVO;
@@ -27,6 +28,15 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<RoleInfoVO> getRoleInfoList() {
         List<RoleDO> roleDOS = roleMapper.selectActiveRoles();
+        return RoleConverter.INSTANCE.toRoleInfoVOList(roleDOS);
+    }
+
+    @Override
+    public List<RoleInfoVO> getRoleInfoList(RoleListQueryDTO queryDTO) {
+        int pageNum = queryDTO != null && queryDTO.getPageNum() != null ? queryDTO.getPageNum() : 1;
+        int pageSize = queryDTO != null && queryDTO.getPageSize() != null ? queryDTO.getPageSize() : 20;
+        int offset = (pageNum - 1) * pageSize;
+        List<RoleDO> roleDOS = roleMapper.selectActiveRolesPaged(offset, pageSize);
         return RoleConverter.INSTANCE.toRoleInfoVOList(roleDOS);
     }
 
