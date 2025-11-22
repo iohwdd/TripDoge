@@ -82,27 +82,18 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException(ErrorCode.USER_EMAIL_EXISTS.getMessage());
         }
 
-        // 3. 验证密码强度（双重验证，确保安全）
-        String password = registerDTO.getPassword();
-        if (password == null || password.length() < 8) {
-            throw new RuntimeException(ErrorCode.USER_PASSWORD_WEAK.getMessage());
-        }
-        if (!password.matches(".*[a-zA-Z].*") || !password.matches(".*[0-9].*")) {
-            throw new RuntimeException(ErrorCode.USER_PASSWORD_WEAK.getMessage());
-        }
-
-        // 4. 转换为DO对象并加密密码
+        // 3. 转换为DO对象并加密密码
         UserDO userDO = UserConverter.INSTANCE.toUserDO(registerDTO);
         userDO.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
         userDO.setAvatarUrl(Constants.DEFAULT_AVATAR);
         
-        // 5. 创建用户
+        // 4. 创建用户
         boolean success = createUser(userDO);
         if (!success) {
             throw new RuntimeException(ErrorCode.USER_REGISTER_FAILED.getMessage());
         }
 
-        // 6. 返回用户信息
+        // 5. 返回用户信息
         return UserConverter.INSTANCE.toUserInfoVO(userDO);
     }
 
