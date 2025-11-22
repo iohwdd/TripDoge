@@ -15,6 +15,7 @@ import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
     @Value("${minio.bucket-name}")
     private String bucketName;
@@ -109,16 +111,19 @@ public class UserServiceImpl implements UserService {
         // 1. 根据邮箱查询用户
         UserDO userDO = selectByEmail(loginDTO.getEmail());
         if (userDO == null) {
+            log.warn("LOGIN_FAIL reason=USER_NOT_FOUND email={}", loginDTO.getEmail());
             throw new RuntimeException(ErrorCode.USER_NOT_FOUND.getMessage());
         }
 
         // 2. 验证密码
         if (!passwordEncoder.matches(loginDTO.getPassword(), userDO.getPassword())) {
+            log.warn("LOGIN_FAIL reason=PASSWORD_ERROR email={}", loginDTO.getEmail());
             throw new RuntimeException(ErrorCode.USER_PASSWORD_ERROR.getMessage());
         }
 
         // 3. 检查用户状态
         if (userDO.getStatus() != 1) {
+            log.warn("LOGIN_FAIL reason=USER_DISABLED email={}", loginDTO.getEmail());
             throw new RuntimeException(ErrorCode.USER_LOGIN_FAILED.getMessage());
         }
 
