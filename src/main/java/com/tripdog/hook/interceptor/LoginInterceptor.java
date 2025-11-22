@@ -29,7 +29,7 @@ public class LoginInterceptor implements HandlerInterceptor {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         // 获取请求URI和方法
         String requestURI = request.getRequestURI();
         String method = request.getMethod();
@@ -42,17 +42,19 @@ public class LoginInterceptor implements HandlerInterceptor {
 
         // 从请求中提取token
         String token = TokenUtils.extractToken(request);
+        String traceId = getTraceId();
+
         if (token == null) {
-            log.warn("TOKEN_MISSING ip={}, uri={}, ua={}",
-                request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"));
+            log.warn("TOKEN_MISSING ip={}, uri={}, ua={}, traceId={}",
+                request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"), traceId);
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
 
         // 验证token格式
         if (!TokenUtils.isValidTokenFormat(token)) {
-            log.warn("TOKEN_INVALID_FORMAT token={}, ip={}, uri={}, ua={}",
-                token, request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"));
+            log.warn("TOKEN_INVALID_FORMAT token={}, ip={}, uri={}, ua={}, traceId={}",
+                token, request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"), traceId);
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
@@ -60,8 +62,8 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 获取用户Session信息
         UserInfoVO loginUser = userSessionService.getSession(token);
         if (loginUser == null) {
-            log.warn("TOKEN_SESSION_MISSING token={}, ip={}, uri={}, ua={}",
-                token, request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"));
+            log.warn("TOKEN_SESSION_MISSING token={}, ip={}, uri={}, ua={}, traceId={}",
+                token, request.getRemoteAddr(), requestURI, request.getHeader("User-Agent"), traceId);
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
@@ -74,16 +76,31 @@ public class LoginInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        ThreadLocalUtils.remove(USER_ID);
+        ThreadLocalUtils.clear();
+    }
+
     /**
      * 写入错误响应
      */
-    private void writeErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    private void writeErrorResponse(HttpServletResponse response, ErrorCode errorCode) {
+        try {
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-        Result<Void> result = Result.error(errorCode);
-        String jsonResult = objectMapper.writeValueAsString(result);
-        response.getWriter().write(jsonResult);
+            Result<Void> result = Result.error(errorCode);
+            String jsonResult = objectMapper.writeValueAsString(result);
+            response.getWriter().write(jsonResult);
+        } catch (Exception e) {
+            log.error("写入错误响应失败", e);
+        }
+    }
+
+    private String getTraceId() {
+        Object traceId = ThreadLocalUtils.get("traceId");
+        return traceId != null ? traceId.toString() : "N/A";
     }
 
 }
