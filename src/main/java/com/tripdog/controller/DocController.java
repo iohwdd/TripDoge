@@ -225,10 +225,7 @@ public class DocController {
             cleanupUploadedDocument(objectKey, fileId, docRecordCreated);
             return Result.error(ErrorCode.SYSTEM_ERROR, "文档上传失败，已回滚，请稍后重试");
         } finally {
-            ThreadLocalUtils.remove(ROLE_ID);
-            ThreadLocalUtils.remove(FILE_ID);
-            ThreadLocalUtils.remove(FILE_NAME);
-            ThreadLocalUtils.remove(UPLOAD_TIME);
+            ThreadLocalUtils.clear();
         }
     }
 
