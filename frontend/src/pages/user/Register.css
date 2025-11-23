@@ -1,0 +1,26 @@
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: var(--spacing-md);
+}
+
+.register-card {
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--box-shadow-lg);
+  border-radius: var(--border-radius-lg);
+}
+
+.register-footer {
+  text-align: center;
+  color: var(--text-color-secondary);
+}
+
+.register-footer .ant-btn-link {
+  padding: 0;
+  height: auto;
+}
+
