@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router-dom'
+import Register from '@/pages/user/Register'
 
 // 用户端路由
 export const userRoutes: RouteObject[] = [
@@ -9,6 +10,10 @@ export const userRoutes: RouteObject[] = [
       {
         index: true,
         element: <div>用户端首页</div>,
+      },
+      {
+        path: 'register',
+        element: <Register />,
       },
     ],
   },
