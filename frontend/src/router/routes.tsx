@@ -1,11 +1,12 @@
 import type { RouteObject } from 'react-router-dom'
 import Register from '@/pages/user/Register'
+import UserLayout from '@/components/common/UserLayout'
 
 // 用户端路由
 export const userRoutes: RouteObject[] = [
   {
     path: '/user',
-    element: <div>用户端布局</div>,
+    element: <UserLayout />,
     children: [
       {
         index: true,
