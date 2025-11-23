@@ -1,2 +1,2 @@
 // 类型定义导出
-export {}
+export * from './api'
