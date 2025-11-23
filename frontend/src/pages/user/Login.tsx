@@ -88,11 +88,7 @@ const Login = () => {
             <Form.Item name="remember" valuePropName="checked" noStyle>
               <Checkbox>记住我</Checkbox>
             </Form.Item>
-            <Button
-              type="link"
-              onClick={() => navigate('/user/forgot-password')}
-              style={{ float: 'right' }}
-            >
+            <Button type="link" onClick={() => navigate('/user/forgot-password')} style={{ float: 'right' }}>
               忘记密码？
             </Button>
           </Form.Item>
@@ -118,3 +114,4 @@ const Login = () => {
 }
 
 export default Login
+

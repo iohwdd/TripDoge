@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { Form, Input, Button, message, Card, Tabs, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { login, register, sendEmailCode } from '@/api/user/auth'
+import { login, register } from '@/api/user/auth'
 import { validateEmail, validatePassword, validateNickname, validateCode } from '@/utils/validation'
 import { tokenStorage, userInfoStorage } from '@/utils/storage'
+import { useEmailCode } from '@/hooks'
 import type { UserLoginDTO, UserRegisterDTO } from '@/types/user'
 import './Auth.css'
 
@@ -29,48 +30,14 @@ const Auth = () => {
   const [registerForm] = Form.useForm()
   const [loginLoading, setLoginLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
-  const [codeLoading, setCodeLoading] = useState(false)
-  const [countdown, setCountdown] = useState(0)
+
+  // 使用邮箱验证码Hook
+  const { codeLoading, countdown, sendCode } = useEmailCode()
 
   // 发送验证码
   const handleSendCode = async () => {
     const email = registerForm.getFieldValue('email')
-    if (!email) {
-      message.warning('请先输入邮箱')
-      return
-    }
-
-    if (!validateEmail(email)) {
-      message.error('请输入正确的邮箱格式')
-      return
-    }
-
-    try {
-      setCodeLoading(true)
-      const res = await sendEmailCode({ email })
-      if (res.code === 200) {
-        message.success('验证码已发送，请查收邮箱')
-        // 开发模式下显示验证码
-        if (import.meta.env.DEV && res.data?.code) {
-          message.info(`开发模式验证码: ${res.data.code}`)
-        }
-        // 开始倒计时
-        setCountdown(60)
-        const timer = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(timer)
-              return 0
-            }
-            return prev - 1
-          })
-        }, 1000)
-      }
-    } catch (error) {
-      console.error('发送验证码失败:', error)
-    } finally {
-      setCodeLoading(false)
-    }
+    await sendCode(email)
   }
 
   // 提交登录

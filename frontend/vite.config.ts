@@ -10,4 +10,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    // 配置开发服务器
+    port: 5173,
+    open: '/user/login', // 自动打开登录页面
+  },
 })
