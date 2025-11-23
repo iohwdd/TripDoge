@@ -4,8 +4,9 @@ import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined } from '@ant-d
 import { useNavigate, useLocation } from 'react-router-dom'
 import { login, register } from '@/api/user/auth'
 import { validateEmail, validatePassword, validateNickname, validateCode } from '@/utils/validation'
-import { tokenStorage, userInfoStorage } from '@/utils/storage'
+import { tokenStorage } from '@/utils/storage'
 import { useEmailCode } from '@/hooks'
+import { useUserStore } from '@/stores'
 import type { UserLoginDTO, UserRegisterDTO } from '@/types/user'
 import './Auth.css'
 
@@ -33,6 +34,9 @@ const Auth = () => {
 
   // 使用邮箱验证码Hook
   const { codeLoading, countdown, sendCode } = useEmailCode()
+  
+  // 使用用户store
+  const { setUserInfo } = useUserStore()
 
   // 发送验证码
   const handleSendCode = async () => {
@@ -49,12 +53,17 @@ const Auth = () => {
       const res = await login(loginData)
       if (res.code === 200 && res.data) {
         const { token, userInfo } = res.data
-        // 保存Token和用户信息
+        // 保存Token
         tokenStorage.set(token)
-        userInfoStorage.set(userInfo)
+        // 更新用户信息到store（会自动同步到localStorage）
+        setUserInfo(userInfo)
         message.success('登录成功')
-        // 跳转到用户首页
-        navigate('/user')
+        // 根据用户角色跳转到对应首页
+        if (userInfo.role === 'ADMIN') {
+          navigate('/admin')
+        } else {
+          navigate('/user')
+        }
       }
     } catch (error) {
       console.error('登录失败:', error)

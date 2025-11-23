@@ -4,7 +4,8 @@ import { MailOutlined, LockOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { login } from '@/api/user/auth'
 import { validateEmail } from '@/utils/validation'
-import { tokenStorage, userInfoStorage } from '@/utils/storage'
+import { tokenStorage } from '@/utils/storage'
+import { useUserStore } from '@/stores'
 import type { UserLoginDTO } from '@/types/user'
 import './Login.css'
 
@@ -12,6 +13,9 @@ const Login = () => {
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  
+  // 使用用户store
+  const { setUserInfo } = useUserStore()
 
   // 提交登录
   const handleSubmit = async (values: UserLoginDTO & { remember?: boolean }) => {
@@ -22,12 +26,17 @@ const Login = () => {
       const res = await login(loginData)
       if (res.code === 200 && res.data) {
         const { token, userInfo } = res.data
-        // 保存Token和用户信息
+        // 保存Token
         tokenStorage.set(token)
-        userInfoStorage.set(userInfo)
+        // 更新用户信息到store（会自动同步到localStorage）
+        setUserInfo(userInfo)
         message.success('登录成功')
-        // 跳转到用户首页
-        navigate('/user')
+        // 根据用户角色跳转到对应首页
+        if (userInfo.role === 'ADMIN') {
+          navigate('/admin')
+        } else {
+          navigate('/user')
+        }
       }
     } catch (error) {
       console.error('登录失败:', error)
