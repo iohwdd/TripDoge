@@ -1,0 +1,53 @@
+/* CSS变量定义 */
+:root {
+  /* 颜色 */
+  --color-primary: #1890ff;
+  --color-success: #52c41a;
+  --color-warning: #faad14;
+  --color-error: #f5222d;
+  --color-info: #1890ff;
+
+  /* 文字颜色 */
+  --text-color-primary: rgba(0, 0, 0, 0.85);
+  --text-color-secondary: rgba(0, 0, 0, 0.65);
+  --text-color-disabled: rgba(0, 0, 0, 0.25);
+  --text-color-inverse: #fff;
+
+  /* 背景颜色 */
+  --bg-color-base: #fff;
+  --bg-color-light: #fafafa;
+  --bg-color-dark: #001529;
+
+  /* 边框颜色 */
+  --border-color-base: #d9d9d9;
+  --border-color-light: #e8e8e8;
+
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* 字体大小 */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-xxl: 24px;
+
+  /* 圆角 */
+  --border-radius-sm: 2px;
+  --border-radius-md: 4px;
+  --border-radius-lg: 8px;
+
+  /* 阴影 */
+  --box-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --box-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --box-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  /* 过渡动画 */
+  --transition-base: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
