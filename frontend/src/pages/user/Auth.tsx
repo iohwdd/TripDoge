@@ -58,11 +58,17 @@ const Auth = () => {
         // 更新用户信息到store（会自动同步到localStorage）
         setUserInfo(userInfo)
         message.success('登录成功')
-        // 根据用户角色跳转到对应首页
+
+        // 获取之前尝试访问的页面（如果有）
+        const from = (location.state as { from?: { pathname: string } })?.from?.pathname
+
+        // 根据用户角色跳转
         if (userInfo.role === 'ADMIN') {
-          navigate('/admin')
+          // 管理员：如果有之前访问的页面且是管理端路由，跳转到该页面；否则跳转到管理端首页
+          navigate(from && from.startsWith('/admin') ? from : '/admin', { replace: true })
         } else {
-          navigate('/user')
+          // 普通用户：如果有之前访问的页面且是用户端路由，跳转到该页面；否则跳转到用户端首页
+          navigate(from && from.startsWith('/user') ? from : '/user', { replace: true })
         }
       }
     } catch (error) {

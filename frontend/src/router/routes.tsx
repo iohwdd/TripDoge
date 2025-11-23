@@ -1,12 +1,19 @@
 import type { RouteObject } from 'react-router-dom'
 import Auth from '@/pages/user/Auth'
 import UserLayout from '@/components/common/UserLayout'
+import ProtectedRoute from '@/components/common/ProtectedRoute'
+import PublicRoute from '@/components/common/PublicRoute'
+import AdminRoute from '@/components/common/AdminRoute'
 
 // 用户端路由
 export const userRoutes: RouteObject[] = [
   {
     path: '/user',
-    element: <UserLayout />,
+    element: (
+      <ProtectedRoute>
+        <UserLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,
@@ -14,15 +21,27 @@ export const userRoutes: RouteObject[] = [
       },
       {
         path: 'login',
-        element: <Auth />,
+        element: (
+          <PublicRoute>
+            <Auth />
+          </PublicRoute>
+        ),
       },
       {
         path: 'register',
-        element: <Auth />,
+        element: (
+          <PublicRoute>
+            <Auth />
+          </PublicRoute>
+        ),
       },
       {
         path: 'auth',
-        element: <Auth />,
+        element: (
+          <PublicRoute>
+            <Auth />
+          </PublicRoute>
+        ),
       },
     ],
   },
@@ -32,7 +51,11 @@ export const userRoutes: RouteObject[] = [
 export const adminRoutes: RouteObject[] = [
   {
     path: '/admin',
-    element: <div>管理端布局</div>,
+    element: (
+      <AdminRoute>
+        <div>管理端布局</div>
+      </AdminRoute>
+    ),
     children: [
       {
         index: true,
