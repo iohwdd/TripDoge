@@ -1,4 +1,5 @@
 // 本地存储工具函数
+import type { UserInfoVO } from '@/types/user'
 
 const TOKEN_KEY = 'trip_doge_token'
 const USER_INFO_KEY = 'trip_doge_user_info'
@@ -18,11 +19,11 @@ export const tokenStorage = {
 
 // 用户信息管理
 export const userInfoStorage = {
-  get: (): unknown => {
+  get: (): UserInfoVO | null => {
     const info = localStorage.getItem(USER_INFO_KEY)
     return info ? JSON.parse(info) : null
   },
-  set: (info: unknown): void => {
+  set: (info: UserInfoVO): void => {
     localStorage.setItem(USER_INFO_KEY, JSON.stringify(info))
   },
   remove: (): void => {

@@ -1,5 +1,5 @@
 import type { RouteObject } from 'react-router-dom'
-import Register from '@/pages/user/Register'
+import Auth from '@/pages/user/Auth'
 import UserLayout from '@/components/common/UserLayout'
 
 // 用户端路由
@@ -13,8 +13,16 @@ export const userRoutes: RouteObject[] = [
         element: <div>用户端首页</div>,
       },
       {
+        path: 'login',
+        element: <Auth />,
+      },
+      {
         path: 'register',
-        element: <Register />,
+        element: <Auth />,
+      },
+      {
+        path: 'auth',
+        element: <Auth />,
       },
     ],
   },

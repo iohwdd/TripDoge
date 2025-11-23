@@ -1,0 +1,26 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
+  padding: var(--spacing-md);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--box-shadow-lg);
+  border-radius: var(--border-radius-lg);
+}
+
+.login-footer {
+  text-align: center;
+  color: var(--text-color-secondary);
+}
+
+.login-footer .ant-btn-link {
+  padding: 0;
+  height: auto;
+}
+
