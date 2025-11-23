@@ -43,4 +43,3 @@ export const adminRequest = {
     return adminApi.patch<ApiResponse<T>>(url, data, config).then(res => res.data)
   },
 }
-

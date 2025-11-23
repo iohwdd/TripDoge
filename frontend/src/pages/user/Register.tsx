@@ -72,7 +72,8 @@ const Register = () => {
     } catch (error) {
       console.error('注册失败:', error)
       const errorMessage =
-        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data
+          ?.message ||
         (error as { message?: string })?.message ||
         '注册失败，请检查网络连接后重试'
       message.error(errorMessage)
@@ -120,11 +121,7 @@ const Register = () => {
               },
             ]}
           >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder="请输入邮箱"
-              autoComplete="email"
-            />
+            <Input prefix={<MailOutlined />} placeholder="请输入邮箱" autoComplete="email" />
           </Form.Item>
 
           <Form.Item
@@ -253,4 +250,3 @@ const Register = () => {
 }
 
 export default Register
-

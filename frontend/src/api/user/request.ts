@@ -43,4 +43,3 @@ export const userRequest = {
     return userApi.patch<ApiResponse<T>>(url, data, config).then(res => res.data)
   },
 }
-

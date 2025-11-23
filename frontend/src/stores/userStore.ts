@@ -47,7 +47,7 @@ export const useUserStore = create<UserState>(set => ({
   // 初始化用户信息（应用启动时调用）
   initUserInfo: async () => {
     const token = tokenStorage.get()
-    
+
     // 如果没有Token，直接标记为已初始化
     if (!token) {
       set({ initialized: true, userInfo: null })
@@ -64,32 +64,32 @@ export const useUserStore = create<UserState>(set => ({
     try {
       set({ loading: true })
       const res = await getUserInfo()
-      
+
       if (res.code === 200 && res.data) {
         // 获取成功，更新用户信息
-        set({ 
-          userInfo: res.data, 
+        set({
+          userInfo: res.data,
           initialized: true,
-          loading: false 
+          loading: false,
         })
         // 同步到localStorage
         userInfoStorage.set(res.data)
       } else {
         // 获取失败，清除Token和用户信息
-        set({ 
-          userInfo: null, 
+        set({
+          userInfo: null,
           initialized: true,
-          loading: false 
+          loading: false,
         })
         clearStorage()
       }
     } catch (error) {
       // 请求失败（可能是Token过期或网络错误）
       console.error('获取用户信息失败:', error)
-      set({ 
-        userInfo: null, 
+      set({
+        userInfo: null,
         initialized: true,
-        loading: false 
+        loading: false,
       })
       // 清除可能过期的Token
       clearStorage()
@@ -107,29 +107,28 @@ export const useUserStore = create<UserState>(set => ({
     try {
       set({ loading: true })
       const res = await getUserInfo()
-      
+
       if (res.code === 200 && res.data) {
-        set({ 
+        set({
           userInfo: res.data,
-          loading: false 
+          loading: false,
         })
         userInfoStorage.set(res.data)
       } else {
         // 获取失败，清除Token和用户信息
-        set({ 
+        set({
           userInfo: null,
-          loading: false 
+          loading: false,
         })
         clearStorage()
       }
     } catch (error) {
       console.error('刷新用户信息失败:', error)
-      set({ 
+      set({
         userInfo: null,
-        loading: false 
+        loading: false,
       })
       clearStorage()
     }
   },
 }))
-

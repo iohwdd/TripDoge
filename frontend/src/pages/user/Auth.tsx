@@ -34,7 +34,7 @@ const Auth = () => {
 
   // 使用邮箱验证码Hook
   const { codeLoading, countdown, sendCode } = useEmailCode()
-  
+
   // 使用用户store
   const { setUserInfo } = useUserStore()
 
@@ -149,7 +149,11 @@ const Auth = () => {
             <Form.Item name="remember" valuePropName="checked" noStyle>
               <Checkbox>记住我</Checkbox>
             </Form.Item>
-            <Button type="link" onClick={() => navigate('/user/forgot-password')} style={{ float: 'right' }}>
+            <Button
+              type="link"
+              onClick={() => navigate('/user/forgot-password')}
+              style={{ float: 'right' }}
+            >
               忘记密码？
             </Button>
           </Form.Item>
@@ -210,7 +214,11 @@ const Auth = () => {
               },
             ]}
           >
-            <Input prefix={<UserOutlined />} placeholder="请输入昵称（2-20位）" autoComplete="nickname" />
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="请输入昵称（2-20位）"
+              autoComplete="nickname"
+            />
           </Form.Item>
 
           <Form.Item
@@ -309,7 +317,7 @@ const Auth = () => {
       <Card className="auth-card">
         <Tabs
           activeKey={activeTab}
-          onChange={(key) => {
+          onChange={key => {
             setActiveTab(key)
             // 切换选项卡时更新URL
             if (key === 'login') {
@@ -328,4 +336,3 @@ const Auth = () => {
 }
 
 export default Auth
-

@@ -1,6 +1,13 @@
 // 用户认证相关API
 import { userRequest } from './request'
-import type { UserRegisterDTO, UserLoginDTO, UserInfoVO, LoginResponse, EmailCodeDTO, EmailCodeVO } from '@/types/user'
+import type {
+  UserRegisterDTO,
+  UserLoginDTO,
+  UserInfoVO,
+  LoginResponse,
+  EmailCodeDTO,
+  EmailCodeVO,
+} from '@/types/user'
 
 /**
  * 用户注册
@@ -36,4 +43,3 @@ export const logout = () => {
 export const getUserInfo = () => {
   return userRequest.post<UserInfoVO>('/api/user/info')
 }
-

@@ -1,5 +1,5 @@
 // 应用初始化组件
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Spin } from 'antd'
 import { useUserStore } from '@/stores/userStore'
@@ -14,10 +14,12 @@ interface AppInitializerProps {
  */
 const AppInitializer = ({ children }: AppInitializerProps) => {
   const { initialized, loading, initUserInfo } = useUserStore()
+  const hasInitialized = useRef(false)
 
   useEffect(() => {
-    // 应用启动时初始化用户信息
-    if (!initialized) {
+    // 应用启动时初始化用户信息（只执行一次）
+    if (!initialized && !hasInitialized.current) {
+      hasInitialized.current = true
       initUserInfo()
     }
   }, [initialized, initUserInfo])
@@ -42,4 +44,3 @@ const AppInitializer = ({ children }: AppInitializerProps) => {
 }
 
 export default AppInitializer
-
