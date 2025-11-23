@@ -12,6 +12,8 @@ export const ErrorCode = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   SERVER_ERROR: 500,
+  // 业务错误码
+  USER_NOT_LOGIN: 10105, // 用户未登录
 } as const
 
 // 请求配置类型
