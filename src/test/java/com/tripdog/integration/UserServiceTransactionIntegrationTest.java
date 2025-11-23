@@ -80,3 +80,4 @@ class UserServiceTransactionIntegrationTest {
         assertEquals(Exception.class, rollbackFor[0], "rollbackFor应该是Exception类");
     }
 }
+

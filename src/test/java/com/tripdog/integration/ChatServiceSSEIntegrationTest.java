@@ -73,3 +73,4 @@ class ChatServiceSSEIntegrationTest {
         assertNotNull(emitter, "SseEmitter应该支持回调设置");
     }
 }
+

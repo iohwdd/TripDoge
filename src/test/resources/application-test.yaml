@@ -42,3 +42,4 @@ logging:
     root: WARN
     com.tripdog: DEBUG
     org.springframework: WARN
+
