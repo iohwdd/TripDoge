@@ -1,2 +1,3 @@
 // 工具函数导出
-export {}
+export * from './storage'
+export * from './request'
