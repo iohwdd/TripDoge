@@ -90,7 +90,7 @@ const UserLayout = () => {
             style={{ borderBottom: 'none', flex: 1 }}
           />
         </div>
-        {userInfo ? (
+        {userInfo && (
           <Space>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
@@ -102,12 +102,6 @@ const UserLayout = () => {
                 <span>{userInfo.nickname || userInfo.email}</span>
               </Space>
             </Dropdown>
-          </Space>
-        ) : (
-          <Space>
-            <span onClick={() => navigate('/user/login')} style={{ cursor: 'pointer' }}>
-              登录
-            </span>
           </Space>
         )}
       </Header>
