@@ -3,7 +3,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--gradient-primary-start) 0%,
+    var(--gradient-primary-end) 100%
+  );
   padding: clamp(4px, 1vh, 8px);
 }
 
@@ -134,4 +138,3 @@
   font-size: inherit;
   line-height: inherit;
 }
-

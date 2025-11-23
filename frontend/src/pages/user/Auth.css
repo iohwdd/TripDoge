@@ -3,7 +3,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--gradient-primary-start) 0%,
+    var(--gradient-primary-end) 100%
+  );
   padding: var(--spacing-md);
 }
 
@@ -22,4 +26,3 @@
   font-size: var(--font-size-md);
   padding: var(--spacing-md) var(--spacing-lg);
 }
-
