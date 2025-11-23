@@ -56,10 +56,13 @@ const Register = () => {
   }
 
   // 提交注册
-  const handleSubmit = async (values: UserRegisterDTO) => {
+  const handleSubmit = async (values: UserRegisterDTO & { confirmPassword?: string }) => {
     try {
       setLoading(true)
-      const res = await register(values)
+      // 移除confirmPassword字段，只发送注册所需的数据
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { confirmPassword, ...registerData } = values
+      const res = await register(registerData)
       if (res.code === 200) {
         message.success('注册成功，请登录')
         navigate('/user/login')

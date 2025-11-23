@@ -49,5 +49,12 @@
 
   /* 过渡动画 */
   --transition-base: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+  /* 渐变背景（用于登录/注册页面） */
+  --gradient-primary-start: #667eea;
+  --gradient-primary-end: #764ba2;
+
+  /* 链接悬停颜色 */
+  --link-hover-color: #40a9ff;
 }
 

@@ -50,7 +50,7 @@ a {
 }
 
 a:hover {
-  color: #40a9ff;
+  color: var(--link-hover-color);
 }
 
 /* 按钮重置 */
