@@ -7,25 +7,9 @@ import AdminRoute from '@/components/common/AdminRoute'
 
 // 用户端路由
 export const userRoutes: RouteObject[] = [
-  // 登录和注册页面作为独立路由，不放在 /user 下
+  // 统一的登录/注册页面（使用选项卡切换）
   {
     path: '/user/login',
-    element: (
-      <PublicRoute>
-        <Auth />
-      </PublicRoute>
-    ),
-  },
-  {
-    path: '/user/register',
-    element: (
-      <PublicRoute>
-        <Auth />
-      </PublicRoute>
-    ),
-  },
-  {
-    path: '/user/auth',
     element: (
       <PublicRoute>
         <Auth />

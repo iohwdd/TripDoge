@@ -13,20 +13,23 @@ import './Auth.css'
 const Auth = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  // 根据URL路径确定初始选项卡
+  // 根据URL查询参数确定初始选项卡
   const getInitialTab = () => {
-    if (location.pathname.includes('/register')) {
-      return 'register'
-    }
-    return 'login'
+    const searchParams = new URLSearchParams(location.search)
+    return searchParams.get('tab') === 'register' ? 'register' : 'login'
   }
   const [activeTab, setActiveTab] = useState<string>(getInitialTab())
 
-  // 当URL变化时，同步更新选项卡
+  // 当URL变化时，同步更新选项卡（支持查询参数）
   useEffect(() => {
-    const tab = location.pathname.includes('/register') ? 'register' : 'login'
-    setActiveTab(tab)
-  }, [location.pathname])
+    const searchParams = new URLSearchParams(location.search)
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'register') {
+      setActiveTab('register')
+    } else {
+      setActiveTab('login')
+    }
+  }, [location.pathname, location.search])
   const [loginForm] = Form.useForm()
   const [registerForm] = Form.useForm()
   const [loginLoading, setLoginLoading] = useState(false)
@@ -325,11 +328,11 @@ const Auth = () => {
           activeKey={activeTab}
           onChange={key => {
             setActiveTab(key)
-            // 切换选项卡时更新URL
-            if (key === 'login') {
-              navigate('/user/login', { replace: true })
+            // 切换选项卡时更新URL查询参数
+            if (key === 'register') {
+              navigate('/user/login?tab=register', { replace: true })
             } else {
-              navigate('/user/register', { replace: true })
+              navigate('/user/login', { replace: true })
             }
           }}
           items={tabItems}

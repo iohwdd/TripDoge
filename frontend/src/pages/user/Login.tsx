@@ -115,7 +115,7 @@ const Login = () => {
           <Form.Item>
             <div className="login-footer">
               <span>还没有账号？</span>
-              <Button type="link" onClick={() => navigate('/user/register')}>
+              <Button type="link" onClick={() => navigate('/user/login?tab=register')}>
                 立即注册
               </Button>
             </div>
