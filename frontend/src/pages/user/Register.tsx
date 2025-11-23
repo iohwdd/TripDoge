@@ -66,11 +66,30 @@ const Register = () => {
       if (res.code === 200) {
         message.success('注册成功，请登录')
         navigate('/user/login')
+      } else {
+        message.error(res.message || '注册失败，请重试')
       }
     } catch (error) {
       console.error('注册失败:', error)
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data
+          ?.message ||
+        (error as { message?: string })?.message ||
+        '注册失败，请检查网络连接后重试'
+      message.error(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 表单验证失败处理
+  const handleFinishFailed = (errorInfo: {
+    errorFields?: Array<{ name: (string | number)[]; errors: string[] }>
+  }) => {
+    console.log('表单验证失败:', errorInfo)
+    const firstError = errorInfo.errorFields?.[0]
+    if (firstError) {
+      message.warning(firstError.errors?.[0] || '请检查表单输入')
     }
   }
 
@@ -81,9 +100,10 @@ const Register = () => {
           form={form}
           name="register"
           onFinish={handleSubmit}
+          onFinishFailed={handleFinishFailed}
           autoComplete="off"
           layout="vertical"
-          size="large"
+          size="small"
         >
           <Form.Item
             name="email"
@@ -209,13 +229,13 @@ const Register = () => {
             />
           </Form.Item>
 
-          <Form.Item>
+          <Form.Item className="register-button-item">
             <Button type="primary" htmlType="submit" block loading={loading}>
               注册
             </Button>
           </Form.Item>
 
-          <Form.Item>
+          <Form.Item className="register-footer-item">
             <div className="register-footer">
               <span>已有账号？</span>
               <Button type="link" onClick={() => navigate('/user/login')}>

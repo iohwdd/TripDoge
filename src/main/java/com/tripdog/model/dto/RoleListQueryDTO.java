@@ -6,7 +6,6 @@ import lombok.Data;
 
 @Data
 public class RoleListQueryDTO {
-
     @Min(1)
     private Integer pageNum = 1;
 

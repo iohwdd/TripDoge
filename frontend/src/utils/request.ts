@@ -78,8 +78,14 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
             message.error((data as { message?: string })?.message || '请求失败，请稍后重试')
         }
       } else if (error.request) {
-        // 请求已发出但没有收到响应
-        message.error('网络错误，请检查网络连接')
+        // 请求已发出但没有收到响应（可能是后端未启动或网络问题）
+        const apiUrl = ENV.API_BASE_URL
+        message.error(`无法连接到后端服务器（${apiUrl}），请检查后端服务是否已启动`)
+        console.error('API请求失败:', {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          message: error.message,
+        })
       } else {
         // 请求配置错误
         message.error('请求配置错误')

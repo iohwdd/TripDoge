@@ -1,2 +1,2 @@
 // 自定义Hooks导出
-export {}
+export { useEmailCode } from './useEmailCode'
