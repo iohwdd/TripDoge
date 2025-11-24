@@ -15,13 +15,16 @@ import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 /**
  * @author: iohw
  * @date: 2025/9/26 13:24
- * @description:
+ * @description: PgVector EmbeddingStore 配置（仅在dashscope provider时启用）
  */
 @Configuration
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "llm.provider", havingValue = "dashscope", matchIfMissing = false)
 public class PgVectorEmbeddingStoreInit {
     final String ROLE_ID = "roleId";
     final String USER_ID = "userId";

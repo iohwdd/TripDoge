@@ -24,7 +24,6 @@ import com.tripdog.common.utils.RoleConfigParser;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,12 +31,12 @@ import static com.tripdog.common.Constants.ROLE_ID;
 
 /**
  * 聊天服务实现类
+ * 通过AssistantService访问LLM功能，实现Provider解耦
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ChatServiceImpl implements ChatService {
-    private final StreamingChatModel chatLanguageModel;
     private final ConversationServiceImpl conversationServiceImpl;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;

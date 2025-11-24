@@ -2,7 +2,7 @@ spring:
   application:
     name: trip-doge
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:ai}
+    active: ${SPRING_PROFILES_ACTIVE:}
 
   # Jackson配置
   jackson:
@@ -77,6 +77,11 @@ spring:
           max-idle: 10
           min-idle: 2
         shutdown-timeout: 100ms
+
+# LLM Provider 配置
+# 可选值: mock (默认，无需API Key), dashscope, deepseek
+llm:
+  provider: ${LLM_PROVIDER:mock}
 
 
 
