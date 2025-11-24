@@ -378,20 +378,156 @@
   background-color: #fff;
 }
 
-/* 响应式 */
+/* 响应式设计 */
+
+/* 移动端 (< 768px) */
 @media (max-width: 768px) {
   .home-layout {
     flex-direction: column-reverse;
+    height: calc(100vh - 64px); /* 减去底部导航栏高度 */
   }
   
   .home-right-sidebar {
     width: 100%;
-    height: 40%;
+    height: 45%;
+    max-height: 45vh;
     border-left: none;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
   }
   
   .home-main-area {
+    height: 55%;
+    min-height: 0;
+  }
+
+  .chat-placeholder {
+    padding: 16px;
+  }
+
+  .placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .placeholder-content h2 {
+    font-size: 20px;
+  }
+
+  .placeholder-content p {
+    font-size: 14px;
+  }
+
+  .home-command-bar {
+    padding: 16px;
+  }
+
+  .command-input-wrapper {
+    padding: 0;
+  }
+
+  .sidebar-header {
+    padding: 12px;
+  }
+
+  .sidebar-title {
+    font-size: 16px;
+  }
+
+  .sidebar-search {
+    margin-top: 8px;
+  }
+
+  .sidebar-expert-item,
+  .sidebar-group-item {
+    padding: 10px 12px;
+  }
+
+  .expert-item-name,
+  .group-item-name {
+    font-size: 14px;
+  }
+
+  .expert-item-desc,
+  .group-item-desc {
+    font-size: 12px;
+  }
+}
+
+/* 平板端 (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .home-right-sidebar {
+    width: 320px;
+  }
+
+  .sidebar-header {
+    padding: 16px;
+  }
+
+  .sidebar-expert-item,
+  .sidebar-group-item {
+    padding: 12px 16px;
+  }
+}
+
+/* 折叠屏横屏模式 (600px - 900px landscape) */
+@media (min-width: 600px) and (max-width: 900px) and (orientation: landscape) {
+  .home-layout {
+    flex-direction: row; /* 横屏时保持左右布局 */
+    height: 100vh;
+  }
+
+  .home-right-sidebar {
+    width: 300px;
+    height: 100%;
+    border-top: none;
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .home-main-area {
+    height: 100%;
+  }
+}
+
+/* 大屏折叠设备优化 (如 Galaxy Fold) */
+@media (min-width: 280px) and (max-width: 653px) {
+  .home-layout {
+    height: calc(100vh - 56px); /* 适配更小的底部导航 */
+  }
+
+  .home-right-sidebar {
+    height: 40%;
+  }
+
+  .home-main-area {
     height: 60%;
+  }
+
+  .placeholder-icon {
+    font-size: 40px;
+  }
+
+  .placeholder-content h2 {
+    font-size: 18px;
+  }
+}
+
+/* 超小屏设备 (< 360px) */
+@media (max-width: 360px) {
+  .sidebar-header {
+    padding: 8px;
+  }
+
+  .sidebar-title {
+    font-size: 14px;
+  }
+
+  .sidebar-expert-item,
+  .sidebar-group-item {
+    padding: 8px 10px;
+  }
+
+  .expert-item-avatar,
+  .group-expert-avatar {
+    margin-right: 8px;
   }
 }

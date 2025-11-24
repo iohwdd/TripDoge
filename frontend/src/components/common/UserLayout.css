@@ -1,0 +1,48 @@
+/* 用户端布局容器 */
+.user-layout-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f2f3f5;
+}
+
+.user-layout-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.user-layout-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* 移动端：为底部导航栏预留空间 */
+@media (max-width: 768px) {
+  .user-layout-container {
+    flex-direction: column;
+  }
+
+  .user-layout-main {
+    padding-bottom: 64px; /* 为底部导航栏预留空间 */
+  }
+}
+
+/* 平板端优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .user-layout-main {
+    margin-left: 0; /* 侧边栏宽度已调整 */
+  }
+}
+
+/* 折叠屏横屏优化 */
+@media (min-width: 600px) and (max-width: 900px) and (orientation: landscape) {
+  .user-layout-main {
+    padding-bottom: 0; /* 横屏时不需要底部导航 */
+  }
+}
+

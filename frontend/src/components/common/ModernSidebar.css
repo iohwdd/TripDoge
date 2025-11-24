@@ -117,3 +117,115 @@
   opacity: 0.9;
 }
 
+/* 移动端响应式：改为底部导航栏 */
+@media (max-width: 768px) {
+  .modern-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    padding: 8px 0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    background-color: #1e1f22;
+  }
+
+  .sidebar-logo {
+    display: none; /* 移动端隐藏 Logo */
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0;
+    padding: 0 8px;
+  }
+
+  .nav-item {
+    flex: 1;
+    max-width: 80px;
+    height: 48px;
+    border-radius: 8px;
+    font-size: 22px;
+  }
+
+  .nav-item.active {
+    background-color: #5865f2;
+  }
+
+  .sidebar-footer {
+    flex-direction: row;
+    gap: 8px;
+    padding: 0 8px;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    width: auto;
+    padding-left: 12px;
+  }
+
+  .user-avatar-section {
+    display: flex;
+    align-items: center;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* 平板端适配 (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .modern-sidebar {
+    width: 60px;
+  }
+
+  .nav-item {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+}
+
+/* 折叠屏支持：横屏模式优化 */
+@media (min-width: 600px) and (max-width: 900px) and (orientation: landscape) {
+  .modern-sidebar {
+    width: 56px;
+    padding: 12px 0;
+  }
+
+  .nav-item {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* 大屏折叠设备（如 Galaxy Fold） */
+@media (min-width: 280px) and (max-width: 653px) {
+  .modern-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    padding: 6px 0;
+  }
+
+  .nav-item {
+    font-size: 20px;
+    height: 44px;
+  }
+}
+

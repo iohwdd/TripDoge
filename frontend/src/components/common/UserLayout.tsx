@@ -1,19 +1,20 @@
 import { Outlet } from 'react-router-dom'
 import ModernSidebar from './ModernSidebar'
+import './UserLayout.css'
 
-// 用户端布局组件 - 重构为三栏式沉浸布局
+// 用户端布局组件 - 重构为三栏式沉浸布局，支持响应式
 const UserLayout = () => {
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: '#f2f3f5' }}>
-      {/* 左侧一级导航 (Command Rail) */}
+    <div className="user-layout-container">
+      {/* 左侧一级导航 (Command Rail) - 移动端自动变为底部导航 */}
       <ModernSidebar />
 
       {/* 右侧主工作区 (Main Stage) */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="user-layout-main">
         {/* 这里未来可以放置二级导航栏 (Context Sidebar) 的占位，目前先直接放 Outlet */}
         {/* 如果有二级侧边栏，可以在这里通过路由或状态控制显示 */}
-        
-        <main style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 }}>
+
+        <main className="user-layout-content">
           <Outlet />
         </main>
       </div>
