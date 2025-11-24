@@ -8,14 +8,22 @@ const router = createBrowserRouter([
     path: '/',
     element: <Navigate to="/user/login" replace />,
   },
-  // 兼容旧路由路径，重定向到新路径
+  // 兼容旧路由路径，统一重定向到登录页
   {
     path: '/login',
     element: <Navigate to="/user/login" replace />,
   },
   {
     path: '/register',
-    element: <Navigate to="/user/register" replace />,
+    element: <Navigate to="/user/login" replace />,
+  },
+  {
+    path: '/user/register',
+    element: <Navigate to="/user/login" replace />,
+  },
+  {
+    path: '/user/auth',
+    element: <Navigate to="/user/login" replace />,
   },
   ...userRoutes,
   ...adminRoutes,

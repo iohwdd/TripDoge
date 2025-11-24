@@ -47,6 +47,12 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
           return Promise.reject(new Error(data.message || '登录已过期'))
         }
 
+        // 用户未登录错误码（10105），静默处理，不显示错误提示
+        // 这个错误码通常出现在应用启动时检查登录状态，属于正常情况
+        if (data.code === ErrorCode.USER_NOT_LOGIN) {
+          return Promise.reject(new Error(data.message || '用户未登录'))
+        }
+
         // 显示错误信息
         message.error(data.message || '请求失败')
         return Promise.reject(new Error(data.message || '请求失败'))
