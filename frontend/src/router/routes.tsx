@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router-dom'
 import Auth from '@/pages/user/Auth'
+import { RoleList, Home } from '@/pages/user'
 import UserLayout from '@/components/common/UserLayout'
 import ProtectedRoute from '@/components/common/ProtectedRoute'
 import PublicRoute from '@/components/common/PublicRoute'
@@ -27,7 +28,23 @@ export const userRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <div>用户端首页</div>,
+        element: <Home />,
+      },
+      {
+        path: 'roles',
+        element: <RoleList />,
+      },
+      {
+        path: 'documents',
+        element: <div>文档管理页面（待实现）</div>,
+      },
+      {
+        path: 'chats',
+        element: <div>对话历史页面（待实现）</div>,
+      },
+      {
+        path: 'chat/:roleId',
+        element: <div>对话页面（待实现）</div>,
       },
     ],
   },
