@@ -1,0 +1,51 @@
+langchain4j:
+  open-ai:
+    # LLM - 使用 DeepSeek API（兼容 OpenAI 格式）
+    chat-model:
+      api-key: ${DEEPSEEK_API_KEY}
+      base-url: https://api.deepseek.com/v1
+      model-name: deepseek-chat
+      temperature: 0.7
+      timeout: 60
+      log-requests: true
+      log-responses: true
+    # Streaming LLM
+    streaming-chat-model:
+      api-key: ${DEEPSEEK_API_KEY}
+      base-url: https://api.deepseek.com/v1
+      model-name: deepseek-chat
+      temperature: 0.7
+      timeout: 60
+      log-requests: true
+      log-responses: true
+    # Embedding model
+    # 注意：DeepSeek 可能不支持 embedding，如果需要 RAG 功能，建议使用 DashScope
+    # embedding-model:
+    #   api-key: ${DEEPSEEK_API_KEY}
+    #   base-url: https://api.deepseek.com/v1
+    #   model-name: text-embedding
+
+# Embedding model - PgVector (必需，即使不使用 RAG 功能)
+pgvector:
+  host: ${PGVECTOR_HOST:localhost}
+  port: ${PGVECTOR_PORT:5432}
+  database: ${PGVECTOR_DATABASE:trip_dog_vector}
+  user: ${PGVECTOR_USER:postgres}
+  password: ${PGVECTOR_PASSWORD:postgres}
+  table: ${PGVECTOR_TABLE:document_embeddings}
+
+# chat config
+chat:
+  compress:
+    enabled: true
+    maxTotalTokens: 6000
+    recentRawCount: 10
+    minMessagesToCompress: 20
+
+# MCP 配置（可选，留空表示不使用 MCP）
+mcp:
+  search-link: ""
+
+# 注意：使用 DeepSeek 时，MCP 和 embedding 功能可能受限
+# 如果需要完整功能，建议使用 DashScope
+

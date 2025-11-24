@@ -131,3 +131,8 @@ site/
 docker-compose.override.yml
 .docker/
 
+*.png
+*.jpg
+*.jpeg
+codex-clipboard-*
+.codex-clipboard-*

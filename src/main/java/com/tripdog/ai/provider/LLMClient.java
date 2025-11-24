@@ -1,11 +1,14 @@
 package com.tripdog.ai.provider;
 
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.service.TokenStream;
+
+import java.util.function.Consumer;
 
 /**
  * LLM Client 统一接口
- * 封装不同Provider的LLM功能，提供统一的访问接口
+ * 提供真正的业务抽象，封装不同Provider的LLM功能
+ * 业务层通过此接口访问LLM，完全解耦底层实现
  * 
  * @author: AI Assistant
  * @date: 2025-11-24
@@ -13,20 +16,62 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 public interface LLMClient {
     
     /**
-     * 获取StreamingChatModel实例
-     * 用于流式对话场景
+     * 流式聊天（文本消息）
      * 
-     * @return StreamingChatModel实例
+     * @param conversationId 会话ID
+     * @param message 用户消息
+     * @return TokenStream流式响应
      */
-    StreamingChatModel getStreamingChatModel();
+    TokenStream streamChat(String conversationId, String message);
     
     /**
-     * 获取ChatModel实例
-     * 用于非流式对话场景（如压缩助手）
+     * 流式聊天（支持多模态，如图片）
      * 
-     * @return ChatModel实例
+     * @param conversationId 会话ID
+     * @param message 用户消息（可包含图片）
+     * @return TokenStream流式响应
      */
-    ChatModel getChatModel();
+    TokenStream streamChat(String conversationId, UserMessage message);
+    
+    /**
+     * 非流式聊天（文本消息）
+     * 注意：当前实现中ChatAssistant只支持流式，此方法通过流式实现
+     * 
+     * @param conversationId 会话ID
+     * @param message 用户消息
+     * @return 完整响应文本
+     */
+    default String chat(String conversationId, String message) {
+        StringBuilder response = new StringBuilder();
+        TokenStream stream = streamChat(conversationId, message);
+        stream.onNext(response::append);
+        stream.onComplete(() -> {});
+        stream.onError((error) -> {
+            throw new RuntimeException("Chat failed", error);
+        });
+        stream.start();
+        return response.toString();
+    }
+    
+    /**
+     * 非流式聊天（支持多模态）
+     * 注意：当前实现中ChatAssistant只支持流式，此方法通过流式实现
+     * 
+     * @param conversationId 会话ID
+     * @param message 用户消息（可包含图片）
+     * @return 完整响应文本
+     */
+    default String chat(String conversationId, UserMessage message) {
+        StringBuilder response = new StringBuilder();
+        TokenStream stream = streamChat(conversationId, message);
+        stream.onNext(response::append);
+        stream.onComplete(() -> {});
+        stream.onError((error) -> {
+            throw new RuntimeException("Chat failed", error);
+        });
+        stream.start();
+        return response.toString();
+    }
     
     /**
      * 获取Provider名称
@@ -42,4 +87,3 @@ public interface LLMClient {
      */
     boolean isAvailable();
 }
-
