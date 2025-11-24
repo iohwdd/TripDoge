@@ -1,0 +1,231 @@
+/* 侧边栏容器 */
+.modern-sidebar {
+  width: 68px;
+  height: 100vh;
+  background-color: #1e1f22; /* 深色背景，更沉浸 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  flex-shrink: 0;
+  z-index: 100;
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Logo */
+.sidebar-logo {
+  margin-bottom: 24px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.sidebar-logo:hover {
+  transform: scale(1.05);
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+}
+
+/* 导航项 */
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  align-items: center;
+}
+
+.nav-item {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-size: 20px;
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+  border-radius: 16px; /* 变圆润 */
+}
+
+.nav-item.active {
+  background-color: #5865f2; /* 品牌色 */
+  color: white;
+  border-radius: 16px;
+}
+
+/* 活跃状态的左侧指示条（可选设计，这里用背景色代替了） */
+.nav-item.active::before {
+  /* content: '';
+  position: absolute;
+  left: -12px;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  background-color: white;
+  border-radius: 0 4px 4px 0; */
+}
+
+/* 底部区域 */
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 60%;
+}
+
+.action-item {
+  color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+.action-item:hover {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.user-avatar {
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.user-avatar:hover {
+  border-color: #5865f2;
+  opacity: 0.9;
+}
+
+/* 移动端响应式：改为底部导航栏 */
+@media (max-width: 768px) {
+  .modern-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    padding: 8px 0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    background-color: #1e1f22;
+  }
+
+  .sidebar-logo {
+    display: none; /* 移动端隐藏 Logo */
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0;
+    padding: 0 8px;
+  }
+
+  .nav-item {
+    flex: 1;
+    max-width: 80px;
+    height: 48px;
+    border-radius: 8px;
+    font-size: 22px;
+  }
+
+  .nav-item.active {
+    background-color: #5865f2;
+  }
+
+  .sidebar-footer {
+    flex-direction: row;
+    gap: 8px;
+    padding: 0 8px;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    width: auto;
+    padding-left: 12px;
+  }
+
+  .user-avatar-section {
+    display: flex;
+    align-items: center;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* 平板端适配 (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .modern-sidebar {
+    width: 60px;
+  }
+
+  .nav-item {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+}
+
+/* 折叠屏支持：横屏模式优化 */
+@media (min-width: 600px) and (max-width: 900px) and (orientation: landscape) {
+  .modern-sidebar {
+    width: 56px;
+    padding: 12px 0;
+  }
+
+  .nav-item {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* 大屏折叠设备（如 Galaxy Fold） */
+@media (min-width: 280px) and (max-width: 653px) {
+  .modern-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    padding: 6px 0;
+  }
+
+  .nav-item {
+    font-size: 20px;
+    height: 44px;
+  }
+}
+

@@ -17,6 +17,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-color-primary);
   background-color: var(--bg-color-light);
+  overflow: hidden; /* 防止body滚动，使用内部区域滚动 */
 }
 
 #root {

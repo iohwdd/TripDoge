@@ -1,0 +1,533 @@
+.home-layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  min-height: 0; /* 修复 flex 子项高度问题 */
+  background-color: #fff;
+  overflow: hidden;
+}
+
+/* 中间主区域 */
+.home-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  position: relative;
+  min-width: 0;
+}
+
+.chat-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fdfdfd;
+}
+
+.placeholder-content {
+  text-align: center;
+  color: #8c8c8c;
+}
+
+.placeholder-icon {
+  font-size: 64px;
+  color: #e6e6e6;
+  margin-bottom: 24px;
+}
+
+.placeholder-content h2 {
+  font-size: 24px;
+  color: #262626;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+/* 底部输入框 */
+.home-command-bar {
+  padding: 24px;
+  background: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.command-input-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #f5f5f5;
+  border-radius: 12px;
+  padding: 4px 8px;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.command-input-wrapper:focus-within {
+  background-color: #fff;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.command-input input {
+  font-size: 16px;
+  background: transparent !important;
+}
+
+/* 右侧侧边栏 */
+.home-right-sidebar {
+  width: 280px;
+  background-color: #fafafa;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 20px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: #fafafa;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #262626;
+}
+
+.mode-switcher {
+  margin-bottom: 12px;
+  background-color: #e6e6e6;
+}
+
+.sidebar-search {
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* 专家列表样式 */
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-role-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 12px;
+  position: relative;
+}
+
+.sidebar-role-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sidebar-role-item.selected {
+  background-color: #e6f7ff;
+}
+
+.role-item-checkbox {
+  flex-shrink: 0;
+}
+
+.role-item-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.status-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background-color: #52c41a;
+  border: 2px solid #fafafa;
+  border-radius: 50%;
+}
+
+.role-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.role-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+  line-height: 1.2;
+}
+
+.role-item-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+}
+
+/* 群组列表样式 */
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.group-item-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-group-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 12px;
+  position: relative;
+}
+
+.group-checkbox {
+  flex-shrink: 0;
+}
+
+.group-expand-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c8c8c;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.group-expand-icon:hover {
+  color: #1890ff;
+}
+
+.sidebar-group-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sidebar-group-item.selected {
+  background-color: #e6f7ff;
+}
+
+.group-item-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e6e6e6;
+  border-radius: 8px;
+  color: #8c8c8c;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sidebar-group-item.selected .group-item-icon {
+  background-color: #1890ff;
+  color: #fff;
+}
+
+.group-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.group-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+  line-height: 1.2;
+}
+
+.group-item-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+}
+
+.group-edit-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.sidebar-group-item:hover .group-edit-btn {
+  opacity: 1;
+}
+
+/* 群组内专家列表 */
+.group-experts-list {
+  padding-left: 32px;
+  padding-right: 8px;
+  padding-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.group-expert-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 10px;
+}
+
+.group-expert-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.group-expert-item.selected {
+  background-color: #e6f7ff;
+}
+
+.group-expert-checkbox {
+  flex-shrink: 0;
+}
+
+.group-expert-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.status-dot-small {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: #52c41a;
+  border: 2px solid #fafafa;
+  border-radius: 50%;
+}
+
+.group-expert-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-expert-name {
+  font-size: 13px;
+  color: #262626;
+  font-weight: 400;
+}
+
+.group-empty-tip {
+  padding: 12px;
+  text-align: center;
+  color: #bfbfbf;
+  font-size: 12px;
+}
+
+/* 添加按钮 */
+.sidebar-add-btn {
+  margin-top: 8px;
+  padding: 12px;
+  text-align: center;
+  color: #8c8c8c;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sidebar-add-btn:hover {
+  color: #1890ff;
+  border-color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.02);
+}
+
+/* 专家选择下拉列表底部按钮 */
+.expert-select-footer {
+  padding: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: #fff;
+}
+
+/* 响应式设计 */
+
+/* 移动端 (< 768px) */
+@media (max-width: 768px) {
+  .home-layout {
+    flex-direction: column-reverse;
+    height: calc(100vh - 64px); /* 减去底部导航栏高度 */
+  }
+  
+  .home-right-sidebar {
+    width: 100%;
+    height: 45%;
+    max-height: 45vh;
+    border-left: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  
+  .home-main-area {
+    height: 55%;
+    min-height: 0;
+  }
+
+  .chat-placeholder {
+    padding: 16px;
+  }
+
+  .placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .placeholder-content h2 {
+    font-size: 20px;
+  }
+
+  .placeholder-content p {
+    font-size: 14px;
+  }
+
+  .home-command-bar {
+    padding: 16px;
+  }
+
+  .command-input-wrapper {
+    padding: 0;
+  }
+
+  .sidebar-header {
+    padding: 12px;
+  }
+
+  .sidebar-title {
+    font-size: 16px;
+  }
+
+  .sidebar-search {
+    margin-top: 8px;
+  }
+
+  .sidebar-expert-item,
+  .sidebar-group-item {
+    padding: 10px 12px;
+  }
+
+  .expert-item-name,
+  .group-item-name {
+    font-size: 14px;
+  }
+
+  .expert-item-desc,
+  .group-item-desc {
+    font-size: 12px;
+  }
+}
+
+/* 平板端 (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .home-right-sidebar {
+    width: 320px;
+  }
+
+  .sidebar-header {
+    padding: 16px;
+  }
+
+  .sidebar-expert-item,
+  .sidebar-group-item {
+    padding: 12px 16px;
+  }
+}
+
+/* 折叠屏横屏模式 (600px - 900px landscape) */
+@media (min-width: 600px) and (max-width: 900px) and (orientation: landscape) {
+  .home-layout {
+    flex-direction: row; /* 横屏时保持左右布局 */
+    height: 100vh;
+  }
+
+  .home-right-sidebar {
+    width: 300px;
+    height: 100%;
+    border-top: none;
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .home-main-area {
+    height: 100%;
+  }
+}
+
+/* 大屏折叠设备优化 (如 Galaxy Fold) */
+@media (min-width: 280px) and (max-width: 653px) {
+  .home-layout {
+    height: calc(100vh - 56px); /* 适配更小的底部导航 */
+  }
+
+  .home-right-sidebar {
+    height: 40%;
+  }
+
+  .home-main-area {
+    height: 60%;
+  }
+
+  .placeholder-icon {
+    font-size: 40px;
+  }
+
+  .placeholder-content h2 {
+    font-size: 18px;
+  }
+}
+
+/* 超小屏设备 (< 360px) */
+@media (max-width: 360px) {
+  .sidebar-header {
+    padding: 8px;
+  }
+
+  .sidebar-title {
+    font-size: 14px;
+  }
+
+  .sidebar-expert-item,
+  .sidebar-group-item {
+    padding: 8px 10px;
+  }
+
+  .expert-item-avatar,
+  .group-expert-avatar {
+    margin-right: 8px;
+  }
+}
