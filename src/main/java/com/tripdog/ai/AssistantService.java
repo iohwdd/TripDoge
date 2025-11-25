@@ -4,10 +4,10 @@ import org.springframework.context.annotation.Configuration;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.ai.embedding.RetrieverFactory;
 import com.tripdog.ai.mcp.McpClientFactory;
-import com.tripdog.ai.provider.LLMClient;
 import com.tripdog.ai.tool.MyTools;
 import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
@@ -21,7 +21,7 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 
 /**
  * Assistant服务类
- * 通过LLMClient统一接口访问LLM功能，实现Provider解耦
+ * 直接使用StreamingChatModel，通过条件注解实现Provider解耦
  * 
  * @author: iohw
  * @date: 2025/9/24 22:21
@@ -29,7 +29,7 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 @Configuration
 @RequiredArgsConstructor
 public class AssistantService {
-    final LLMClient llmClient;
+    final StreamingChatModel streamingChatModel;
     final RetrieverFactory retrieverFactory;
     final CustomerChatMemoryProvider chatMemoryProvider;
     final McpClientFactory mcpClientFactory;
@@ -51,7 +51,7 @@ public class AssistantService {
             .build();
 
         return AiServices.builder(ChatAssistant.class)
-            .streamingChatModel(llmClient.getStreamingChatModel())
+            .streamingChatModel(streamingChatModel)
             .retrievalAugmentor(retrievalAugmentor)
             .chatMemoryProvider(chatMemoryProvider)
             .tools(new MyTools())
