@@ -3,7 +3,7 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background-color: #f2f3f5;
+  background-color: var(--bg-color-secondary);
 }
 
 .user-layout-main {
@@ -28,7 +28,7 @@
   }
 
   .user-layout-main {
-    padding-bottom: 64px; /* 为底部导航栏预留空间 */
+    padding-bottom: var(--layout-bottom-nav-height); /* 为底部导航栏预留空间 */
   }
 }
 
@@ -45,4 +45,3 @@
     padding-bottom: 0; /* 横屏时不需要底部导航 */
   }
 }
-

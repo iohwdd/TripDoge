@@ -12,7 +12,7 @@ export const userRoutes: RouteObject[] = [
   {
     path: '/user/login',
     element: (
-      <PublicRoute>
+      <PublicRoute allowAuthenticated>
         <Auth />
       </PublicRoute>
     ),

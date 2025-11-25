@@ -64,3 +64,4 @@ curl -X POST http://localhost:7979/api/chat/1/history \
 5. 验证历史消息是否正确显示
 
 
+

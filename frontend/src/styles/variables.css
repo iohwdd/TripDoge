@@ -1,59 +1,208 @@
 /* CSS变量定义 */
+/* 
+ * Design Tokens 系统
+ * 版本: 1.0.0
+ * 最后更新: 2025-01-24
+ * 
+ * 使用原则：
+ * 1. 禁止硬编码颜色值，使用 --color-* 或 --text-color-* 或 --bg-color-*
+ * 2. 禁止硬编码间距值，使用 --spacing-*
+ * 3. 禁止硬编码字体大小，使用 --font-size-*
+ * 4. 禁止硬编码尺寸值，使用 --layout-* 或 --icon-size-* 等
+ */
+
 :root {
-  /* 颜色 */
+  /* ========== 颜色系统 ========== */
+
+  /* 主题颜色 */
   --color-primary: #1890ff;
   --color-success: #52c41a;
   --color-warning: #faad14;
   --color-error: #f5222d;
   --color-info: #1890ff;
 
+  /* 主题颜色扩展（浅色变体） */
+  --color-primary-light: rgba(24, 144, 255, 0.1);
+  --color-primary-lighter: rgba(24, 144, 255, 0.02);
+  --color-success-light: rgba(82, 196, 26, 0.1);
+
   /* 文字颜色 */
   --text-color-primary: rgba(0, 0, 0, 0.85);
   --text-color-secondary: rgba(0, 0, 0, 0.65);
+  --text-color-tertiary: rgba(0, 0, 0, 0.45);
+  --text-color-quaternary: rgba(0, 0, 0, 0.25);
   --text-color-disabled: rgba(0, 0, 0, 0.25);
   --text-color-inverse: #fff;
+  --text-color-heading: #262626;
+  --text-color-placeholder: #bfbfbf;
 
   /* 背景颜色 */
   --bg-color-base: #fff;
+  --bg-color-secondary: #f5f5f5;
+  --bg-color-tertiary: #fafafa;
+  --bg-color-quaternary: #fdfdfd;
   --bg-color-light: #fafafa;
   --bg-color-dark: #001529;
+  --bg-color-hover: rgba(0, 0, 0, 0.04);
+  --bg-color-hover-subtle: rgba(0, 0, 0, 0.02);
+  --bg-color-active: #e6f7ff;
+  --bg-color-disabled: #e6e6e6;
 
   /* 边框颜色 */
   --border-color-base: #d9d9d9;
   --border-color-light: #e8e8e8;
+  --border-color-base-alpha: rgba(0, 0, 0, 0.06);
+  --border-color-light-alpha: rgba(0, 0, 0, 0.04);
+  --border-color-dashed: #d9d9d9;
 
-  /* 间距 */
+  /* 链接颜色 */
+  --link-hover-color: #40a9ff;
+
+  /* ========== 间距系统 ========== */
+
+  /* 基础间距 */
+  --spacing-xxs: 2px;
   --spacing-xs: 4px;
+  --spacing-xs-plus: 6px;
   --spacing-sm: 8px;
+  --spacing-sm-plus: 10px;
+  --spacing-md-minus: 14px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  --spacing-xxxl: 64px;
+
+  /* 语义化间距 */
+  --spacing-section: var(--spacing-xl);
+  --spacing-card-padding: var(--spacing-md);
+  --spacing-input-padding: var(--spacing-sm) var(--spacing-md);
+
+  /* ========== 字体系统 ========== */
 
   /* 字体大小 */
+  --font-size-xxs: 11px;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-md: 16px;
   --font-size-lg: 18px;
   --font-size-xl: 20px;
   --font-size-xxl: 24px;
+  --font-size-xxxl: 32px;
+  --font-size-xxxxl: 48px;
+  --font-size-xxxxxl: 64px;
 
-  /* 圆角 */
+  /* 行高 */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+
+  /* ========== 圆角系统 ========== */
+
+  --border-radius-xs: 1px;
   --border-radius-sm: 2px;
   --border-radius-md: 4px;
   --border-radius-lg: 8px;
+  --border-radius-xl: 12px;
+  --border-radius-xxl: 16px;
+  --border-radius-full: 50%;
 
-  /* 阴影 */
+  /* ========== 阴影系统 ========== */
+
+  --box-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.1);
   --box-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
   --box-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
   --box-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --box-shadow-focus: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  --motion-role-card-hover-translate: -4px;
 
-  /* 过渡动画 */
+  /* ========== 布局尺寸 ========== */
+
+  /* 侧边栏宽度 */
+  --layout-sidebar-width: 280px;
+  --layout-sidebar-width-tablet: 320px;
+  --layout-sidebar-width-mobile: 100%;
+  --layout-sidebar-width-fold: 300px;
+  --layout-auth-card-max-width: 480px;
+  --layout-role-search-max-width: 500px;
+  --layout-role-card-min-width: 280px;
+  --layout-role-card-min-width-sm: 240px;
+  --layout-role-card-cover-height: 180px;
+  --layout-role-card-cover-height-sm: 150px;
+
+  /* 容器宽度 */
+  --layout-container-max-width: 1200px;
+  --layout-content-max-width: 800px;
+
+  /* 侧边栏组件尺寸 */
+  --sidebar-width-desktop: 68px;
+  --sidebar-width-tablet: 60px;
+  --sidebar-width-mobile: 100%;
+
+  /* 底部导航预留高度 */
+  --layout-bottom-nav-height: 64px;
+  --layout-bottom-nav-height-sm: 56px;
+
+  /* 表单控件尺寸 */
+  --form-control-height-sm: 28px;
+  --form-control-height-md: 32px;
+
+  /* ========== 图标尺寸 ========== */
+
+  --icon-size-xs: 8px;
+  --icon-size-sm: 12px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 36px;
+  --icon-size-xl: 40px;
+  --icon-size-xxl: 64px;
+
+  /* ========== 头像尺寸 ========== */
+
+  --avatar-size-sm: 32px;
+  --avatar-size-md: 40px;
+  --avatar-size-lg: 60px;
+
+  /* ========== 按钮尺寸 ========== */
+
+  --button-height-sm: 28px;
+  --button-height-md: 36px;
+  --button-height-lg: 44px;
+
+  /* ========== 线条 ========== */
+  --border-width-lg: 4px;
+
+  /* ========== 过渡动画 ========== */
+
   --transition-base: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  --transition-fast: all 0.2s ease;
 
-  /* 渐变背景（用于登录/注册页面） */
+  /* ========== 渐变背景 ========== */
+
   --gradient-primary-start: #667eea;
   --gradient-primary-end: #764ba2;
 
-  /* 链接悬停颜色 */
-  --link-hover-color: #40a9ff;
+  /* ========== 滚动条 ========== */
+  --scrollbar-size: 8px;
+  --scrollbar-radius: 4px;
+
+  /* ========== 响应式断点 ========== */
+  /* 注意：这些值用于文档参考，CSS 媒体查询中直接使用数值 */
+
+  --breakpoint-xs: 360px;
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-xxl: 1600px;
+
+  /* ========== Z-index 层级 ========== */
+
+  --z-index-base: 1;
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
 }

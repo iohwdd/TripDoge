@@ -11,6 +11,7 @@ import {
   Form,
   Select,
 } from 'antd'
+import type { CheckboxChangeEvent } from 'antd/es/checkbox'
 import {
   UserOutlined,
   SearchOutlined,
@@ -49,25 +50,38 @@ const Home = () => {
   const [searchKeyword, setSearchKeyword] = useState('')
   // 选中的专家ID集合
   const [selectedExpertIds, setSelectedExpertIds] = useState<number[]>([])
+  // 群组模式下选中的群组ID集合
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
   // 底部输入框内容
   const [commandInput, setCommandInput] = useState('')
   // 选择模式：单聊 vs 群组
   const [selectionMode, setSelectionMode] = useState<'single' | 'group'>('single')
   // 群组列表（预定义 + 自定义）
-  const [expertGroups, setExpertGroups] = useState<ExpertGroup[]>([
-    {
-      id: 'six-thinking-hats',
-      name: '六顶思考帽',
-      description: '多角度思维分析',
-      expertIds: [], // 需要根据实际专家ID填充
-    },
-    {
-      id: 'strategy-analysis',
-      name: '策略分析专家群组',
-      description: '战略规划与决策支持',
-      expertIds: [],
-    },
-  ])
+  const [expertGroups, setExpertGroups] = useState<ExpertGroup[]>(() => {
+    const storedGroups = localStorage.getItem('expertGroups')
+    if (storedGroups) {
+      try {
+        return JSON.parse(storedGroups)
+      } catch (error) {
+        console.error('解析本地群组数据失败:', error)
+      }
+    }
+
+    return [
+      {
+        id: 'six-thinking-hats',
+        name: '六顶思考帽',
+        description: '多角度思维分析',
+        expertIds: [],
+      },
+      {
+        id: 'strategy-analysis',
+        name: '策略分析专家群组',
+        description: '战略规划与决策支持',
+        expertIds: [],
+      },
+    ]
+  })
   // 群组管理弹窗
   const [groupModalVisible, setGroupModalVisible] = useState(false)
   const [editingGroup, setEditingGroup] = useState<ExpertGroup | null>(null)
@@ -154,29 +168,36 @@ const Home = () => {
 
   // 处理群组选择（全选/全不选群组内所有专家）
   const handleGroupSelect = (group: ExpertGroup) => {
-    const allSelected = group.expertIds.every(id => selectedExpertIds.includes(id))
-    if (allSelected) {
-      // 如果全部选中，则全不选
-      setSelectedExpertIds(prev => prev.filter(id => !group.expertIds.includes(id)))
+    const isSelected = selectedGroupIds.includes(group.id)
+    if (isSelected) {
+      setSelectedGroupIds(prev => prev.filter(id => id !== group.id))
+      setSelectedExpertIds([])
     } else {
-      // 否则全选（合并现有选中项）
-      setSelectedExpertIds(prev => {
-        const newSet = new Set([...prev, ...group.expertIds])
-        return Array.from(newSet)
-      })
+      // 选择新的群组时，清除之前的群组选择，确保显示只反映当前选中的群组
+      setSelectedGroupIds([group.id])
+      setSelectedExpertIds([...group.expertIds])
     }
   }
 
   // 处理群组内单个专家的选择
-  const toggleExpertInGroup = (expertId: number, e: React.MouseEvent) => {
-    e.stopPropagation()
-    toggleExpertSelection(expertId)
+  const toggleExpertInGroup = (group: ExpertGroup, expertId: number) => {
+    const isCurrentGroupActive = selectedGroupIds.includes(group.id)
+    const baseSelection = isCurrentGroupActive ? selectedExpertIds : []
+    const groupSelection = baseSelection.filter(id => group.expertIds.includes(id))
+    const isSelected = groupSelection.includes(expertId)
+    const updatedSelection = isSelected
+      ? groupSelection.filter(id => id !== expertId)
+      : [...groupSelection, expertId]
+
+    setSelectedExpertIds(updatedSelection)
+    setSelectedGroupIds(updatedSelection.length > 0 ? [group.id] : [])
   }
 
   // 切换模式时重置选择
   const handleModeChange = (value: 'single' | 'group') => {
     setSelectionMode(value)
     setSelectedExpertIds([])
+    setSelectedGroupIds([])
     // 重置对话状态
     setIsChatStarted(false)
     setCurrentRoleId(null)
@@ -216,11 +237,11 @@ const Home = () => {
       const values = await form.validateFields()
       if (editingGroup) {
         // 更新群组
-        setExpertGroups(prev =>
-          prev.map(g =>
-            g.id === editingGroup.id ? { ...g, ...values, expertIds: values.expertIds || [] } : g
-          )
+        const updated = expertGroups.map(g =>
+          g.id === editingGroup.id ? { ...g, ...values, expertIds: values.expertIds || [] } : g
         )
+        setExpertGroups(updated)
+        localStorage.setItem('expertGroups', JSON.stringify(updated))
         message.success('群组更新成功')
       } else {
         // 创建新群组
@@ -229,7 +250,9 @@ const Home = () => {
           ...values,
           expertIds: values.expertIds || [],
         }
-        setExpertGroups(prev => [...prev, newGroup])
+        const updated = [...expertGroups, newGroup]
+        setExpertGroups(updated)
+        localStorage.setItem('expertGroups', JSON.stringify(updated))
         message.success('群组创建成功')
       }
       setGroupModalVisible(false)
@@ -671,13 +694,9 @@ const Home = () => {
                 {expertGroups.map(group => {
                   const isExpanded = expandedGroupIds.has(group.id)
                   // 计算群组复选框状态：全选、部分选中、未选中
-                  const selectedCount = group.expertIds.filter(id =>
-                    selectedExpertIds.includes(id)
-                  ).length
-                  const isAllSelected =
-                    group.expertIds.length > 0 && selectedCount === group.expertIds.length
-                  const isIndeterminate =
-                    selectedCount > 0 && selectedCount < group.expertIds.length
+                  const isGroupSelected = selectedGroupIds.includes(group.id)
+                  const isAllSelected = isGroupSelected
+                  const isIndeterminate = false
                   // 获取群组内的专家列表
                   const groupExperts = roles.filter(r => group.expertIds.includes(r.id))
 
@@ -726,18 +745,26 @@ const Home = () => {
                         <div className="group-experts-list">
                           {groupExperts.length > 0 ? (
                             groupExperts.map(expert => {
-                              const isExpertSelected = selectedExpertIds.includes(expert.id)
+                              const isExpertSelected =
+                                selectedGroupIds.includes(group.id) &&
+                                selectedExpertIds.includes(expert.id)
                               return (
                                 <div
                                   key={expert.id}
                                   className={`group-expert-item ${isExpertSelected ? 'selected' : ''}`}
-                                  onClick={e => toggleExpertInGroup(expert.id, e)}
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    toggleExpertInGroup(group, expert.id)
+                                  }}
                                 >
                                   <Checkbox
                                     checked={isExpertSelected}
                                     className="group-expert-checkbox"
                                     onClick={e => e.stopPropagation()}
-                                    onChange={() => toggleExpertSelection(expert.id)}
+                                    onChange={(e: CheckboxChangeEvent) => {
+                                      e.stopPropagation()
+                                      toggleExpertInGroup(group, expert.id)
+                                    }}
                                   />
                                   <div className="group-expert-avatar">
                                     <Avatar
