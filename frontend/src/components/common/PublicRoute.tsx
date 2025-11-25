@@ -10,6 +10,10 @@ interface PublicRouteProps {
    * 根据用户角色决定：管理员跳转到 /admin，普通用户跳转到 /user
    */
   redirectTo?: string
+  /**
+   * 是否允许已登录用户继续访问该公共路由
+   */
+  allowAuthenticated?: boolean
 }
 
 /**
@@ -17,7 +21,7 @@ interface PublicRouteProps {
  * - 已登录用户访问时跳转到对应首页
  * - 未登录用户可以正常访问
  */
-const PublicRoute = ({ children, redirectTo }: PublicRouteProps) => {
+const PublicRoute = ({ children, redirectTo, allowAuthenticated = false }: PublicRouteProps) => {
   const { userInfo, initialized } = useUserStore()
 
   // 如果还在初始化，显示加载状态
@@ -37,7 +41,7 @@ const PublicRoute = ({ children, redirectTo }: PublicRouteProps) => {
   }
 
   // 如果已登录，跳转到对应首页
-  if (userInfo) {
+  if (userInfo && !allowAuthenticated) {
     // 如果指定了跳转路径，使用指定的路径
     if (redirectTo) {
       return <Navigate to={redirectTo} replace />

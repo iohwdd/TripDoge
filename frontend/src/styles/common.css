@@ -17,7 +17,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-color-primary);
   background-color: var(--bg-color-light);
-  overflow: hidden; /* 防止body滚动，使用内部区域滚动 */
+  overflow-y: auto; /* 允许垂直滚动 */
+  overflow-x: hidden; /* 防止水平滚动 */
 }
 
 #root {
@@ -26,8 +27,8 @@ body {
 
 /* 滚动条样式 */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
 }
 
 ::-webkit-scrollbar-track {
@@ -36,7 +37,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-color-base);
-  border-radius: 4px;
+  border-radius: var(--scrollbar-radius);
 }
 
 ::-webkit-scrollbar-thumb:hover {

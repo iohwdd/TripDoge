@@ -8,12 +8,12 @@
     var(--gradient-primary-start) 0%,
     var(--gradient-primary-end) 100%
   );
-  padding: var(--spacing-md);
+  padding: clamp(var(--spacing-sm), 1vh, var(--spacing-lg));
 }
 
 .login-card {
   width: 100%;
-  max-width: 480px;
+  max-width: var(--layout-auth-card-max-width);
   box-shadow: var(--box-shadow-lg);
   border-radius: var(--border-radius-lg);
 }

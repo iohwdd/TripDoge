@@ -1,5 +1,5 @@
 .role-list-container {
-  max-width: 1200px;
+  max-width: var(--layout-container-max-width);
   margin: 0 auto;
   padding: var(--spacing-lg);
 }
@@ -16,12 +16,12 @@
 }
 
 .role-list-search {
-  max-width: 500px;
+  max-width: var(--layout-role-search-max-width);
 }
 
 .role-list-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--layout-role-card-min-width), 1fr));
   gap: var(--spacing-lg);
   margin-top: var(--spacing-lg);
 }
@@ -34,7 +34,7 @@
 }
 
 .role-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(var(--motion-role-card-hover-translate));
   box-shadow: var(--box-shadow-md);
 }
 
@@ -43,8 +43,12 @@
   justify-content: center;
   align-items: center;
   padding: var(--spacing-xl);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 180px;
+  background: linear-gradient(
+    135deg,
+    var(--gradient-primary-start) 0%,
+    var(--gradient-primary-end) 100%
+  );
+  min-height: var(--layout-role-card-cover-height);
 }
 
 .role-card-avatar {
@@ -79,7 +83,7 @@
   }
 
   .role-list-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--layout-role-card-min-width-sm), 1fr));
     gap: var(--spacing-md);
   }
 
@@ -94,13 +98,12 @@
   }
 
   .role-card-cover {
-    min-height: 150px;
+    min-height: var(--layout-role-card-cover-height-sm);
     padding: var(--spacing-lg);
   }
 
   .role-card-avatar {
-    width: 60px !important;
-    height: 60px !important;
+    width: var(--avatar-size-lg) !important;
+    height: var(--avatar-size-lg) !important;
   }
 }
-
