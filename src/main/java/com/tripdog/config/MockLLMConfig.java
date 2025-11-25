@@ -8,6 +8,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -78,6 +79,16 @@ public class MockLLMConfig {
                 .apiKey("mock-api-key")
                 .baseUrl("http://localhost:9999/mock") // 不存在的端点
                 .modelName("mock-embedding-model")
+                .build();
+    }
+
+    @Bean
+    @Primary
+    public EmbeddingStoreIngestor embeddingStoreIngestor(EmbeddingStore<TextSegment> embeddingStore, EmbeddingModel embeddingModel) {
+        log.info("使用Mock EmbeddingStoreIngestor - 内存存储，重启后数据会丢失");
+        return EmbeddingStoreIngestor.builder()
+                .embeddingStore(embeddingStore)
+                .embeddingModel(embeddingModel)
                 .build();
     }
 }

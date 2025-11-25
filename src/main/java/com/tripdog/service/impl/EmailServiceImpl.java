@@ -208,6 +208,7 @@ public class EmailServiceImpl implements EmailService {
      * 注意：Redis设置了过期时间，会自动清理，此方法主要用于监控和日志
      */
     @Scheduled(fixedDelay = 5 * 60 * 1000)
+    @Override
     public void logCodeStatistics() {
         if (redisService.isRedisAvailable()) {
             log.debug("验证码存储使用Redis，过期验证码会自动清理");

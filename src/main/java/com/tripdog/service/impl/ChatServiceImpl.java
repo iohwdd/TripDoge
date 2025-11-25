@@ -81,10 +81,20 @@ public class ChatServiceImpl implements ChatService {
                     return emitter;
                 }
                 
-                FileUploadDTO fileUploadDTO = fileUploadUtils.upload2Minio(chatReqDTO.getFile(), userId, "/tmp");
-                String imageUrl = fileUploadUtils.getUrlFromMinio(fileUploadDTO.getFileUrl());
-                UserMessage message = UserMessage.from(TextContent.from(chatReqDTO.getMessage()), ImageContent.from(URI.create(imageUrl)));
-                stream = assistant.chat(conversation.getConversationId(), message);
+                // 检查MinIO是否可用
+                try {
+                    FileUploadDTO fileUploadDTO = fileUploadUtils.upload2Minio(chatReqDTO.getFile(), userId, "/tmp");
+                    String imageUrl = fileUploadUtils.getUrlFromMinio(fileUploadDTO.getFileUrl());
+                    UserMessage message = UserMessage.from(TextContent.from(chatReqDTO.getMessage()), ImageContent.from(URI.create(imageUrl)));
+                    stream = assistant.chat(conversation.getConversationId(), message);
+                } catch (RuntimeException e) {
+                    if (e.getMessage() != null && e.getMessage().contains("MinIO未配置")) {
+                        log.warn("MinIO未配置，图片上传功能不可用: {}", e.getMessage());
+                        safeCompleteWithError(emitter, new RuntimeException("图片上传功能需要配置MinIO"), "MINIO_NOT_CONFIGURED", roleId, userId);
+                        return emitter;
+                    }
+                    throw e;
+                }
             }else {
                 stream = assistant.chat(conversation.getConversationId(), chatReqDTO.getMessage());
             }

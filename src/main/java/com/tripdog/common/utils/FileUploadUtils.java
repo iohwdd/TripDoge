@@ -72,6 +72,10 @@ public class FileUploadUtils {
      * @return 上传结果DTO
      */
     public FileUploadDTO upload2Minio(MultipartFile file, Long userId, String path) {
+        if (minioClient == null) {
+            throw new RuntimeException("MinIO未配置，文件上传功能不可用。请配置MINIO_ENDPOINT、MINIO_AK、MINIO_SK环境变量");
+        }
+        
         try {
             // 检查文件
             if (file.isEmpty()) {
@@ -103,9 +107,6 @@ public class FileUploadUtils {
                     .build()
             );
 
-            // 构建文件访问URL
-            String fileUrl = String.format(MINIO_HOST + "/%s/%s", minioConfig.getBucketName(), objectKey);
-
             log.info("文件上传成功: 用户ID={}, 文件名={}, 对象路径={}", userId, originalFilename, objectKey);
 
             return FileUploadDTO.builder()
@@ -125,6 +126,10 @@ public class FileUploadUtils {
     }
 
     public String getUrlFromMinio(String minioUrl) {
+        if (minioClient == null) {
+            throw new RuntimeException("MinIO未配置，无法获取文件URL。请配置MINIO_ENDPOINT、MINIO_AK、MINIO_SK环境变量");
+        }
+        
         try {
             return minioClient.getPresignedObjectUrl(
                 GetPresignedObjectUrlArgs.builder()

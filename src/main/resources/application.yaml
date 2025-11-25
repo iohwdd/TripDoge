@@ -1,4 +1,6 @@
 spring:
+  aop:
+    proxy-target-class: true
   application:
     name: trip-doge
   profiles:
@@ -33,7 +35,7 @@ spring:
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:trip_dog}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
     username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD}
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 
@@ -41,8 +43,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
     port: ${MAIL_PORT:465}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:demo@example.com}
+    password: ${MAIL_PASSWORD:demo-password}
     default-encoding: UTF-8
     properties:
       mail:
@@ -65,10 +67,10 @@ spring:
   # Redis配置
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
-      database: ${REDIS_DATABASE}
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
       timeout: 10s
       lettuce:
         pool:
@@ -127,13 +129,14 @@ mybatis:
     cache-enabled: false
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# minio
+# minio (可选，用于文件上传功能)
+# 如果不需要文件上传功能，可以留空，服务仍可启动
 minio:
-  endpoint: ${MINIO_ENDPOINT}
+  endpoint: ${MINIO_ENDPOINT:localhost}
   port: ${MINIO_PORT:9000}
-  access-key: ${MINIO_AK}
-  secret-key: ${MINIO_SK}
-  bucket-name: trip-doge
+  access-key: ${MINIO_AK:minioadmin}
+  secret-key: ${MINIO_SK:minioadmin}
+  bucket-name: ${MINIO_BUCKET_NAME:trip-doge}
 
 # CORS 跨域配置
 cors:
@@ -189,3 +192,8 @@ session:
     enabled: ${SESSION_FALLBACK_ENABLED:true}
     max-size: ${SESSION_FALLBACK_MAX_SIZE:1000}
     cleanup-interval-ms: ${SESSION_FALLBACK_CLEANUP_INTERVAL_MS:60000}
+
+# MCP 配置（默认值，profile 配置会覆盖）
+# 留空表示不使用 MCP 功能
+mcp:
+  search-link: ${SEARCH_MCP_LINK:}
