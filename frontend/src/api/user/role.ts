@@ -17,4 +17,3 @@ export const getRoleList = (queryDTO?: RoleListQueryDTO) => {
 export const getRoleDetail = (roleId: number) => {
   return userRequest.post<RoleDetailVO>(`/api/roles/${roleId}/detail`)
 }
-

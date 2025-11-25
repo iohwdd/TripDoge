@@ -1,6 +1,6 @@
 import type { RouteObject } from 'react-router-dom'
 import Auth from '@/pages/user/Auth'
-import { RoleList, Home } from '@/pages/user'
+import { RoleList, Home, Chat } from '@/pages/user'
 import UserLayout from '@/components/common/UserLayout'
 import ProtectedRoute from '@/components/common/ProtectedRoute'
 import PublicRoute from '@/components/common/PublicRoute'
@@ -44,7 +44,7 @@ export const userRoutes: RouteObject[] = [
       },
       {
         path: 'chat/:roleId',
-        element: <div>对话页面（待实现）</div>,
+        element: <Chat />,
       },
     ],
   },

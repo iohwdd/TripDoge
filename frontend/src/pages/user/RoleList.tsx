@@ -41,7 +41,7 @@ const RoleList = () => {
     }
     const keyword = searchKeyword.toLowerCase()
     return roles.filter(
-      (role) =>
+      role =>
         role.name?.toLowerCase().includes(keyword) ||
         role.description?.toLowerCase().includes(keyword) ||
         role.code?.toLowerCase().includes(keyword)
@@ -67,7 +67,7 @@ const RoleList = () => {
           prefix={<SearchOutlined />}
           placeholder="搜索角色名称、描述或代码..."
           value={searchKeyword}
-          onChange={(e) => setSearchKeyword(e.target.value)}
+          onChange={e => setSearchKeyword(e.target.value)}
           allowClear
           size="large"
           className="role-list-search"
@@ -82,7 +82,7 @@ const RoleList = () => {
           />
         ) : (
           <div className="role-list-grid">
-            {filteredRoles.map((role) => (
+            {filteredRoles.map(role => (
               <Card
                 key={role.id}
                 hoverable
@@ -102,9 +102,7 @@ const RoleList = () => {
                 <Card.Meta
                   title={<div className="role-card-title">{role.name}</div>}
                   description={
-                    <div className="role-card-description">
-                      {role.description || '暂无描述'}
-                    </div>
+                    <div className="role-card-description">{role.description || '暂无描述'}</div>
                   }
                 />
               </Card>
@@ -117,4 +115,3 @@ const RoleList = () => {
 }
 
 export default RoleList
-

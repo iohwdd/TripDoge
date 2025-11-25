@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Avatar, Tooltip } from 'antd'
-import {
-  MessageOutlined,
-  FileTextOutlined,
-  SettingOutlined,
-  UserOutlined,
-} from '@ant-design/icons'
+import { MessageOutlined, FileTextOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons'
 import { useUserStore } from '@/stores'
 import { logout } from '@/api/user/auth'
 import './ModernSidebar.css'
@@ -73,7 +68,7 @@ const ModernSidebar: React.FC = () => {
 
       {/* 导航区域 */}
       <div className="sidebar-nav">
-        {navItems.map((item) => (
+        {navItems.map(item => (
           <Tooltip key={item.key} title={item.label} placement="right">
             <div
               className={`nav-item ${activeTab === item.key ? 'active' : ''}`}

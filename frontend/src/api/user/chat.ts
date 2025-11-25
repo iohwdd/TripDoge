@@ -22,4 +22,3 @@ export const resetChat = (roleId: number) => {
 // export const chatStream = (roleId: number, req: ChatReqDTO) => {
 //   // 使用 EventSource 或 fetch stream 实现
 // }
-

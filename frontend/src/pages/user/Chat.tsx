@@ -217,7 +217,7 @@ const Chat = () => {
             <Empty description="还没有对话记录，开始对话吧！" />
           </div>
         ) : (
-          messages.map((msg) => (
+          messages.map(msg => (
             <div
               key={msg.id}
               className={`chat-message ${msg.messageType === 'user' ? 'user-message' : 'ai-message'}`}
@@ -272,7 +272,7 @@ const Chat = () => {
           />
           <Input.TextArea
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="输入消息..."
             autoSize={{ minRows: 1, maxRows: 4 }}
@@ -296,4 +296,3 @@ const Chat = () => {
 }
 
 export default Chat
-
