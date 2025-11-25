@@ -3,8 +3,6 @@ package com.tripdog.ai.mcp;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +19,7 @@ import static com.tripdog.ai.mcp.McpConstants.WEB_SEARCH;
  */
 @Configuration
 public class McpClientFactory {
-    @Value("${mcp.search-link}")
+    @Value("${mcp.search-link:}")
     private String searchMcpLink;
     private static final Map<String, McpClient> map = new HashMap<>();
 
@@ -42,6 +40,11 @@ public class McpClientFactory {
     }
 
     private McpClient getWebSearchMcpClient() {
+        // 如果search-link为空，返回null，不创建MCP客户端
+        if (searchMcpLink == null || searchMcpLink.isEmpty()) {
+            return null;
+        }
+        
         try {
             StreamableHttpMcpTransport transport = new StreamableHttpMcpTransport.Builder()
                 .url(searchMcpLink)

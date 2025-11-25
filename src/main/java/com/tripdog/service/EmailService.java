@@ -27,4 +27,9 @@ public interface EmailService {
      */
     boolean verifyCode(String email, String code);
 
+    /**
+     * 定期统计/清理验证码信息（供调度器调用）
+     */
+    void logCodeStatistics();
+
 }

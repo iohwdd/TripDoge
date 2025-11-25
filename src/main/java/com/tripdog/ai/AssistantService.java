@@ -20,14 +20,16 @@ import static com.tripdog.ai.mcp.McpConstants.WEB_SEARCH;
 import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 
 /**
+ * Assistant服务类
+ * 直接使用StreamingChatModel，通过条件注解实现Provider解耦
+ * 
  * @author: iohw
  * @date: 2025/9/24 22:21
- * @description:
  */
 @Configuration
 @RequiredArgsConstructor
 public class AssistantService {
-    final StreamingChatModel chatLanguageModel;
+    final StreamingChatModel streamingChatModel;
     final RetrieverFactory retrieverFactory;
     final CustomerChatMemoryProvider chatMemoryProvider;
     final McpClientFactory mcpClientFactory;
@@ -49,7 +51,7 @@ public class AssistantService {
             .build();
 
         return AiServices.builder(ChatAssistant.class)
-            .streamingChatModel(chatLanguageModel)
+            .streamingChatModel(streamingChatModel)
             .retrievalAugmentor(retrievalAugmentor)
             .chatMemoryProvider(chatMemoryProvider)
             .tools(new MyTools())
