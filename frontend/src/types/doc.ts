@@ -48,3 +48,4 @@ export interface UploadDTO {
   file: File
   roleId?: number
 }
+

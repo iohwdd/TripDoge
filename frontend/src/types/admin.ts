@@ -66,3 +66,4 @@ export interface SystemStatsVO {
   storageUsed: number
   systemHealth: 'healthy' | 'warning' | 'error'
 }
+

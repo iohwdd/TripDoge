@@ -28,15 +28,17 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")  // 拦截所有的请求
                 .excludePathPatterns(
-                        "/user/register",      // 注册
-                        "/user/login",         // 登录
-                        "/user/sendEmail",     // 发送验证码
-                        "/roles/list",         // 角色列表（可能需要在未登录时访问）
-                        "/api-docs/**",        // Swagger API 文档
-                        "/swagger-ui/**",      // Swagger UI 资源
-                        "/swagger-ui.html",    // Swagger UI 首页
-                        "/actuator",           // 监控配置
-                        "/actuator/**"
+                        "/user/register",          // 注册
+                        "/user/login",             // 登录
+                        "/user/sendEmail",         // 发送验证码
+                        "/user/email/send",        // 发送验证码（新路径）
+                        "/roles/list",             // 角色列表（可能需要在未登录时访问）
+                        "/api-docs/**",            // Swagger API 文档
+                        "/swagger-ui/**",          // Swagger UI 资源
+                        "/swagger-ui.html",        // Swagger UI 首页
+                        "/actuator",               // 监控配置
+                        "/actuator/**",
+                        "/error"                   // 错误页面
                 );
     }
 

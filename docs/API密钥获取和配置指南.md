@@ -235,3 +235,4 @@ cd /projects/trip_doge
 **总结**：如果您有 DeepSeek API Key，推荐使用 DeepSeek，因为配置更简单且免费额度充足。如果需要完整的 RAG 功能，建议使用 DashScope。
 
 
+

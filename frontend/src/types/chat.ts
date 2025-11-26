@@ -26,3 +26,4 @@ export interface ConversationVO {
   createTime: string
   updateTime: string
 }
+

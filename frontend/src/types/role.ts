@@ -28,3 +28,4 @@ export interface RoleListQueryDTO {
   pageNum?: number
   pageSize?: number
 }
+

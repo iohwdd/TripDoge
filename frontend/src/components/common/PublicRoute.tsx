@@ -58,3 +58,4 @@ const PublicRoute = ({ children, redirectTo, allowAuthenticated = false }: Publi
 }
 
 export default PublicRoute
+

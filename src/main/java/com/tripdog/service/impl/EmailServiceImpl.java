@@ -41,7 +41,7 @@ public class EmailServiceImpl implements EmailService {
     /**
      * 验证码长度
      */
-    private static final int CODE_LENGTH = 8;
+    private static final int CODE_LENGTH = 6;
     
     /**
      * 验证码过期时间（分钟）
@@ -168,8 +168,8 @@ public class EmailServiceImpl implements EmailService {
         do {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < CODE_LENGTH; i++) {
-                int val = random.nextInt(36);
-                sb.append(val < 10 ? (char) ('0' + val) : (char) ('A' + (val - 10)));
+                // 只生成数字0-9
+                sb.append(random.nextInt(10));
             }
             code = sb.toString();
             

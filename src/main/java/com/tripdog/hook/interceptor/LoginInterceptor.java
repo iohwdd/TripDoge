@@ -40,6 +40,15 @@ public class LoginInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 手动排除不需要登录的路径（解决excludePathPatterns在某些情况下不生效的问题）
+        if (requestURI.endsWith("/user/register") || 
+            requestURI.endsWith("/user/login") ||
+            requestURI.endsWith("/user/sendEmail") ||
+            requestURI.endsWith("/roles/list")) {
+            log.debug("路径无需认证，直接放行: {}", requestURI);
+            return true;
+        }
+
         // 从请求中提取token
         String token = TokenUtils.extractToken(request);
         String traceId = getTraceId();
