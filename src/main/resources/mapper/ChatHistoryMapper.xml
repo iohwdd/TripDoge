@@ -44,7 +44,7 @@
             <if test="role != null and role != ''">AND role = #{role}</if>
             <if test="createdAt != null">AND DATE(created_at) = DATE(#{createdAt})</if>
         </where>
-        ORDER BY created_at DESC
+        ORDER BY created_at asc
     </select>
 
     <select id="selectRecentMessages" resultMap="BaseResultMap">
