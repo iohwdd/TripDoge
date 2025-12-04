@@ -2,6 +2,7 @@ package com.tripdog.service.impl;
 
 import com.tripdog.common.Constants;
 import com.tripdog.common.ErrorCode;
+import com.tripdog.common.utils.MinioUtils;
 import com.tripdog.mapper.UserMapper;
 import com.tripdog.model.converter.UserConverter;
 import com.tripdog.model.dto.UserLoginDTO;
@@ -11,12 +12,8 @@ import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.EmailService;
 import com.tripdog.service.UserService;
 
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MinioClient;
-import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,13 +23,11 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    @Value("${minio.bucket-name}")
-    private String bucketName;
 
-    private final MinioClient minioClient;
     private final UserMapper userMapper;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final MinioUtils minioUtils;
 
     @Override
     public UserDO selectByEmail(String email) {
@@ -109,22 +104,7 @@ public class UserServiceImpl implements UserService {
         if (userDO.getStatus() != 1) {
             throw new RuntimeException(ErrorCode.USER_LOGIN_FAILED.getMessage());
         }
-
-        // 转化头像url
-        String url;
-        try{
-            url = minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(bucketName)
-                    .object(userDO.getAvatarUrl())
-                    .expiry(60 * 60)
-                    .build()
-            );
-            userDO.setAvatarUrl(url);
-        }catch (Exception e){
-            throw new RuntimeException(ErrorCode.NO_FOUND_FILE.getMessage());
-        }
+        userDO.setAvatarUrl(minioUtils.getTemporaryUrlByPath(userDO.getAvatarUrl()));
 
         // 4. 返回用户信息
         return UserConverter.INSTANCE.toUserInfoVO(userDO);

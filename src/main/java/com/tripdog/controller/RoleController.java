@@ -2,6 +2,7 @@ package com.tripdog.controller;
 
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
+import com.tripdog.common.utils.MinioUtils;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.vo.RoleInfoVO;
@@ -11,9 +12,6 @@ import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
 import com.tripdog.service.impl.UserSessionService;
 
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MinioClient;
-import io.minio.http.Method;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -21,7 +19,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,14 +31,11 @@ import java.util.List;
 @RequestMapping("/roles")
 @RequiredArgsConstructor
 public class RoleController {
-    @Value("${minio.bucket-name}")
-    private String bucketName;
-    private final MinioClient minioClient;
     private final RoleService roleService;
     private final ConversationService conversationService;
     private final ConversationMapper conversationMapper;
     private final UserSessionService userSessionService;
-
+    private final MinioUtils minioUtils;
 
     /**
      * 获取用户与角色对话列表
@@ -67,21 +61,7 @@ public class RoleController {
                 conversation = conversationService.getOrCreateConversation(userInfo.getId(), roleInfoVO.getId());
             }
             roleInfoVO.setConversationId(conversation.getConversationId());
-            // 转化头像url
-            String url;
-            try{
-                url = minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                        .method(Method.GET)
-                        .bucket(bucketName)
-                        .object(roleInfoVO.getAvatarUrl())
-                        .expiry(60 * 60)
-                        .build()
-                );
-                roleInfoVO.setAvatarUrl(url);
-            }catch (Exception e){
-                throw new RuntimeException(ErrorCode.NO_FOUND_FILE.getMessage());
-            }
+            roleInfoVO.setAvatarUrl(minioUtils.getTemporaryUrlByPath(roleInfoVO.getAvatarUrl()));
         });
 
         return Result.success(roleInfoList);

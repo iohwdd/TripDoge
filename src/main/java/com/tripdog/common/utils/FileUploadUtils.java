@@ -1,7 +1,6 @@
 package com.tripdog.common.utils;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,11 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.tripdog.config.MinioConfig;
 import com.tripdog.model.dto.FileUploadDTO;
 
-import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.errors.MinioException;
-import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,8 +33,8 @@ public class FileUploadUtils {
     private static String baseDir = "./files";
     @Value("${minio.endpoint}")
     private String MINIO_HOST;
-    private final MinioClient minioClient;
     private final MinioConfig minioConfig;
+    private final MinioUtils minioUtils;
 
     public static FileUploadDTO upload2Local(MultipartFile file, String path) {
         try {
@@ -85,40 +80,27 @@ public class FileUploadUtils {
             }
 
             String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            String fileName = UUID.randomUUID().toString() + fileExtension;
+            String fileName = UUID.randomUUID() + fileExtension;
 
             // 构建对象路径：用户ID/文件名
             String objectKey = userId + path + "/" + fileName;
 
-            // 获取文件输入流
-            InputStream inputStream = file.getInputStream();
-
             // 上传文件到MinIO
-            minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(minioConfig.getBucketName())
-                    .object(objectKey)
-                    .stream(inputStream, file.getSize(), -1)
-                    .contentType(file.getContentType())
-                    .build()
-            );
+            minioUtils.putObject(objectKey, file);
 
             // 构建文件访问URL
-            String fileUrl = String.format(MINIO_HOST + "/%s/%s", minioConfig.getBucketName(), objectKey);
+            String fileUrl = minioUtils.getTemporaryUrlByPath(objectKey);
 
             log.info("文件上传成功: 用户ID={}, 文件名={}, 对象路径={}", userId, originalFilename, objectKey);
 
             return FileUploadDTO.builder()
                 .fileId(GeneratorIdUtils.getUUID())
                 .fileName(fileName)
-                .fileUrl(objectKey)
+                .fileUrl(fileUrl)
                 .objectKey(objectKey)
                 .build();
 
-        } catch (MinioException e) {
-            log.error("MinIO上传失败: {}", e.getMessage(), e);
-            throw new RuntimeException("文件上传到MinIO失败: " + e.getMessage());
-        } catch (Exception e) {
+        }catch (Exception e) {
             log.error("文件上传异常: {}", e.getMessage(), e);
             throw new RuntimeException("文件上传失败: " + e.getMessage());
         }
@@ -126,14 +108,7 @@ public class FileUploadUtils {
 
     public String getUrlFromMinio(String minioUrl) {
         try {
-            return minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(minioConfig.getBucketName())
-                    .object(minioUrl)
-                    .expiry(60 * 60)
-                    .build()
-            );
+            return minioUtils.getTemporaryUrlByPath(minioUrl);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -146,14 +121,9 @@ public class FileUploadUtils {
      * @param minioClient MinIO客户端
      * @param bucketName 桶名
      */
-    public static void deleteFromMinio(String objectKey, MinioClient minioClient, String bucketName) {
+    public void deleteFromMinio(String objectKey, MinioClient minioClient, String bucketName) {
         try {
-            minioClient.removeObject(
-                io.minio.RemoveObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectKey)
-                    .build()
-            );
+            minioUtils.removeObject(objectKey);
             log.info("文件删除成功: 对象路径={}", objectKey);
         } catch (Exception e) {
             log.error("MinIO文件删除失败: 对象路径={}, 错误={}", objectKey, e.getMessage(), e);

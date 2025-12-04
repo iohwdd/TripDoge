@@ -2,6 +2,8 @@ package com.tripdog.service.impl;
 
 import java.util.List;
 
+import com.tripdog.common.utils.MinioUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.tripdog.mapper.RoleMapper;
@@ -22,7 +24,11 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class RoleServiceImpl implements RoleService {
+    @Value("${minio.bucket-name}")
+    private String bucketName;
+
     final RoleMapper roleMapper;
+    final MinioUtils minioUtils;
 
     @Override
     public List<RoleInfoVO> getRoleInfoList() {
@@ -45,6 +51,8 @@ public class RoleServiceImpl implements RoleService {
         if (roleDO == null) {
             return null;
         }
+        roleDO.setAvatarUrl(minioUtils.getTemporaryUrlByPath(roleDO.getAvatarUrl()));
+
         return convertToRoleDetailVO(roleDO);
     }
 
