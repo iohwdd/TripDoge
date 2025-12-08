@@ -1,4 +1,4 @@
-package com.tripdog.tts;
+package com.tripdog.ai.tts;
 
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -57,9 +57,10 @@ public class QwenRealtimeTtsService {
      * 尝试开启一个新的实时 TTS 会话。
      *
      * @param audioConsumer 音频数据回调（Base64 PCM）
+     * @param voice         指定音色（为空则使用默认）
      * @return 会话包装，若配置缺失或创建失败则返回 empty
      */
-    public Optional<RealtimeTtsSession> startSession(Consumer<String> audioConsumer) {
+    public Optional<RealtimeTtsSession> startSession(Consumer<String> audioConsumer, String voice) {
         if (!enabled) {
             log.debug("Qwen realtime TTS is disabled, skip session creation.");
             return Optional.empty();
@@ -72,11 +73,18 @@ public class QwenRealtimeTtsService {
             return Optional.empty();
         }
         try {
-            return Optional.of(new RealtimeTtsSession(audioConsumer));
+            return Optional.of(new RealtimeTtsSession(audioConsumer, voice));
         } catch (Exception e) {
             log.error("Failed to start Qwen realtime TTS session.", e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * 尝试开启一个新的实时 TTS 会话（使用默认音色）。
+     */
+    public Optional<RealtimeTtsSession> startSession(Consumer<String> audioConsumer) {
+        return startSession(audioConsumer, null);
     }
 
     public class RealtimeTtsSession implements AutoCloseable {
@@ -88,7 +96,7 @@ public class QwenRealtimeTtsService {
         private final AtomicBoolean closed = new AtomicBoolean(false);
         private final CountDownLatch finishedLatch = new CountDownLatch(1);
 
-        private RealtimeTtsSession(Consumer<String> audioConsumer) throws NoApiKeyException, InterruptedException {
+        private RealtimeTtsSession(Consumer<String> audioConsumer, String voice) throws NoApiKeyException, InterruptedException {
             this.audioConsumer = audioConsumer;
             this.executor = Executors.newSingleThreadExecutor(r -> {
                 Thread thread = new Thread(r, "qwen-tts-feed-" + THREAD_COUNTER.incrementAndGet());
@@ -107,7 +115,7 @@ public class QwenRealtimeTtsService {
 
             QwenTtsRealtimeAudioFormat audioFormat = resolveFormat();
             QwenTtsRealtimeConfig config = QwenTtsRealtimeConfig.builder()
-                .voice(defaultVoice)
+                .voice(StringUtils.hasText(voice) ? voice : defaultVoice)
                 .responseFormat(audioFormat)
                 .mode(defaultMode)
                 .build();

@@ -14,4 +14,5 @@ public class ChatReqDTO {
     private String message;
     private MultipartFile file;
     private Boolean streamAudio;
+    private String voice;
 }

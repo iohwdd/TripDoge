@@ -23,7 +23,7 @@ import com.tripdog.service.ChatService;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
 import com.tripdog.common.utils.RoleConfigParser;
-import com.tripdog.tts.QwenRealtimeTtsService;
+import com.tripdog.ai.tts.QwenRealtimeTtsService;
 
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
@@ -76,7 +76,7 @@ public class ChatServiceImpl implements ChatService {
             ChatAssistant assistant = assistantService.getAssistant();
 
             ttsHolder[0] = Boolean.TRUE.equals(chatReqDTO.getStreamAudio())
-                ? qwenRealtimeTtsService.startSession(delta -> sendAudioDelta(emitter, emitterClosed, delta)).orElse(null)
+                ? qwenRealtimeTtsService.startSession(delta -> sendAudioDelta(emitter, emitterClosed, delta), chatReqDTO.getVoice()).orElse(null)
                 : null;
 
             MultipartFile file = chatReqDTO.getFile();
