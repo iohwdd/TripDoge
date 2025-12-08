@@ -34,5 +34,14 @@ chat:
     recentRawCount: 10
     minMessagesToCompress: 20
 
+tts:
+  qwen:
+    enabled: ${TTS_QWEN_ENABLED:true}
+    url: ${TTS_QWEN_URL:wss://dashscope.aliyuncs.com/api-ws/v1/realtime}
+    model: ${TTS_QWEN_MODEL:qwen3-tts-flash-realtime}
+    voice: ${TTS_QWEN_VOICE:Cherry}
+    mode: ${TTS_QWEN_MODE:server_commit}
+    format: ${TTS_QWEN_FORMAT:PCM_24000HZ_MONO_16BIT}
+
 mcp:
   search-link: ${SEARCH_MCP_LINK}

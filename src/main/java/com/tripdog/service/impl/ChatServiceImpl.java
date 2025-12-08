@@ -2,10 +2,14 @@ package com.tripdog.service.impl;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.util.StringUtils;
 
 import com.tripdog.ai.AssistantService;
 import com.tripdog.ai.assistant.ChatAssistant;
@@ -19,6 +23,7 @@ import com.tripdog.service.ChatService;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
 import com.tripdog.common.utils.RoleConfigParser;
+import com.tripdog.tts.QwenRealtimeTtsService;
 
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
@@ -42,11 +47,14 @@ public class ChatServiceImpl implements ChatService {
     private final RoleMapper roleMapper;
     private final AssistantService assistantService;
     private final FileUploadUtils fileUploadUtils;
+    private final QwenRealtimeTtsService qwenRealtimeTtsService;
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO chatReqDTO) {
         ThreadLocalUtils.set(ROLE_ID, roleId);
         SseEmitter emitter = new SseEmitter(-1L);
+        final QwenRealtimeTtsService.RealtimeTtsSession[] ttsHolder = new QwenRealtimeTtsService.RealtimeTtsSession[1];
+        AtomicBoolean emitterClosed = new AtomicBoolean(false);
 
         try {
             // 1. 获取或创建会话
@@ -67,6 +75,10 @@ public class ChatServiceImpl implements ChatService {
             // 使用角色专用的聊天助手，传入角色的系统提示词
             ChatAssistant assistant = assistantService.getAssistant();
 
+            ttsHolder[0] = Boolean.TRUE.equals(chatReqDTO.getStreamAudio())
+                ? qwenRealtimeTtsService.startSession(delta -> sendAudioDelta(emitter, emitterClosed, delta)).orElse(null)
+                : null;
+
             MultipartFile file = chatReqDTO.getFile();
             TokenStream stream;
             if(file != null) {
@@ -80,44 +92,101 @@ public class ChatServiceImpl implements ChatService {
             }
 
             stream.onPartialResponse((data) -> {
+                if (emitterClosed.get()) {
+                    return;
+                }
                 try {
                     responseBuilder.append(data);
+                    if (ttsHolder[0] != null) {
+                        ttsHolder[0].appendText(data);
+                    }
                     emitter.send(SseEmitter.event()
                         .data(data)
                         .id(String.valueOf(System.currentTimeMillis()))
                         .name("message")
                     );
-                } catch (IOException e) {
-                    log.error("发送SSE部分响应失败", e);
-                    emitter.completeWithError(e);
+                } catch (Exception e) {
+                    handleEmitterException(emitter, emitterClosed, e);
                 }
             }).onCompleteResponse((data) -> {
                 try {
 
                     // 8. 更新会话统计
                     conversationServiceImpl.updateConversationStats(conversation.getConversationId(), null, null);
+                    if (ttsHolder[0] != null) {
+                        ttsHolder[0].finish();
+                        ttsHolder[0].awaitCompletion(10, TimeUnit.SECONDS);
+                    }
 
-                    emitter.send(SseEmitter.event()
-                        .data("[DONE]")
-                        .id(String.valueOf(System.currentTimeMillis()))
-                        .name("done"));
-                    emitter.complete();
-                } catch (IOException e) {
-                    log.error("发送SSE完成响应失败", e);
-                    emitter.completeWithError(e);
+                    if (!emitterClosed.get()) {
+                        emitter.send(SseEmitter.event()
+                            .data("[DONE]")
+                            .id(String.valueOf(System.currentTimeMillis()))
+                            .name("done"));
+                        emitter.complete();
+                        emitterClosed.set(true);
+                    }
+                } catch (Exception e) {
+                    handleEmitterException(emitter, emitterClosed, e);
+                } finally {
+                    if (ttsHolder[0] != null) {
+                        ttsHolder[0].close();
+                    }
                 }
             }).onError((ex) -> {
                 log.error("AI聊天流处理异常", ex);
-                emitter.completeWithError(ex);
+                if (ttsHolder[0] != null) {
+                    ttsHolder[0].finish();
+                    ttsHolder[0].close();
+                }
+                if (emitterClosed.compareAndSet(false, true)) {
+                    emitter.completeWithError(ex);
+                }
             }).start();
 
         } catch (Exception e) {
             log.error("聊天服务处理异常", e);
-            emitter.completeWithError(e);
+            if (ttsHolder[0] != null) {
+                ttsHolder[0].close();
+            }
+            if (emitterClosed.compareAndSet(false, true)) {
+                emitter.completeWithError(e);
+            }
         } finally {
             ThreadLocalUtils.remove(ROLE_ID);
         }
 
         return emitter;
+    }
+
+    private void sendAudioDelta(SseEmitter emitter, AtomicBoolean emitterClosed, String base64Pcm) {
+        if (!StringUtils.hasText(base64Pcm)) {
+            return;
+        }
+        try {
+            emitter.send(SseEmitter.event()
+                .data(Map.of("audio_delta", base64Pcm))
+                .id(String.valueOf(System.currentTimeMillis()))
+                .name("audio"));
+        } catch (Exception e) {
+            handleEmitterException(emitter, emitterClosed, e);
+        }
+    }
+
+    private void handleEmitterException(SseEmitter emitter, AtomicBoolean emitterClosed, Exception e) {
+        if (e instanceof IllegalStateException || e.getCause() instanceof IOException) {
+            if (emitterClosed.compareAndSet(false, true)) {
+                try {
+                    emitter.complete();
+                } catch (Exception ignored) {
+                }
+            }
+            log.warn("SSE连接已关闭，后续数据丢弃: {}", e.getMessage());
+            return;
+        }
+        log.error("SSE发送失败", e);
+        if (emitterClosed.compareAndSet(false, true)) {
+            emitter.completeWithError(e);
+        }
     }
 }

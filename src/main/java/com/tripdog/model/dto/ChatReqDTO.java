@@ -13,4 +13,5 @@ import lombok.Data;
 public class ChatReqDTO {
     private String message;
     private MultipartFile file;
+    private Boolean streamAudio;
 }

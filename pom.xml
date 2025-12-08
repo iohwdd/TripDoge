@@ -28,6 +28,7 @@
         <mybatis.version>3.5.17</mybatis.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <minio.version>8.5.7</minio.version>
+        <dashscope.sdk.version>2.21.16</dashscope.sdk.version>
     </properties>
 
     <dependencies>
@@ -189,6 +190,13 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- DashScope Java SDK (TTS / Tokenizer etc.) -->
+        <dependency>
+            <groupId>com.alibaba.dashscope</groupId>
+            <artifactId>dashscope-sdk-java</artifactId>
+            <version>${dashscope.sdk.version}</version>
         </dependency>
 
     </dependencies>
