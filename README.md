@@ -43,33 +43,43 @@ TripDoge 是一个支持多角色扮演的智能对话后端，集成了文档�
 参考 [`docs/TripDoge项目启动配置说明.md`](docs/TripDoge项目启动配置说明.md) 配置以下环境变量：
 
 ```bash
-# 必需
-DASHSCOPE_API_KEY=
+export REDIS_HOST=""
+export REDIS_PORT=""
+export REDIS_PASSWORD=""
+export REDIS_DATABASE=""
 
-MYSQL_HOST=
-MYSQL_DATABASE=
-MYSQL_USERNAME=
-MYSQL_PASSWORD=
+export MYSQL_HOST=""
+export MYSQL_PORT=""
+export MYSQL_DATABASE=""
+export MYSQL_USERNAME=""
+export MYSQL_PASSWORD=""
 
+export MAIL_PORT="465"
+export MAIL_USERNAME=""
+export MAIL_PASSWORD=""
 
-REDIS_HOST=
-REDIS_PORT=
-REDIS_PASSWORD=
-REDIS_DATABASE=
+export MINIO_ENDPOINT=""
+export MINIO_PORT=""
+export MINIO_AK=""
+export MINIO_SK=""
 
+export PGVECTOR_DATABASE=""
+export PGVECTOR_USER=""
+export PGVECTOR_PASSWORD=""
+export PGVECTOR_TABLE=""
 
-PGVECTOR_HOST=
-PGVECTOR_USER=
-PGVECTOR_PASSWORD=
+export DASHSCOPE_API_KEY=""
 
-MINIO_ENDPOINT=
-MINIO_AK=
-MINIO_SK=
+export SEARCH_MCP_LINK=""
 
-MAIL_HOST=
-MAIL_PORT=
-MAIL_USERNAME=
-MAIL_PASSWORD=
+export RABBITMQ_HOST=""
+
+export PGVECTOR_HOST=""
+export PGVECTOR_PORT=""
+export PGVECTOR_DATABASE=""
+export PGVECTOR_USER=""
+export PGVECTOR_PASSWORD=""
+export PGVECTOR_TABLE=""
 ```
 
 ### 数据库初始化
