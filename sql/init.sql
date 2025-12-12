@@ -11,19 +11,18 @@ USE `trip_doge`;
 
 create table t_chat_history
 (
-    id               bigint auto_increment comment '消息ID'
+    id               bigint auto_increment comment 'ID'
         primary key,
-    conversation_id  varchar(50)                         not null comment '所属会话ID',
-    role             varchar(20)                         not null comment '消息角色：user/assistant/system',
-    content          mediumtext                          null comment '消息内容',
-    enhanced_content mediumtext                          null comment '检索增强内容',
-    tool_call        mediumtext                          null comment '工具调用',
-    tool_exec_result varchar(255)                        null comment '工具调用结果',
-    input_tokens     int                                 null comment '输入token数（用户消息+系统提示+历史上下文）',
-    output_tokens    int                                 null comment '输出token数（AI生成的回复内容）',
-    created_at       timestamp default CURRENT_TIMESTAMP null comment '创建时间'
-)
-    comment '聊天历史记录表';
+    conversation_id  varchar(50)                         not null comment 'ID',
+    role             varchar(20)                         not null comment 'user/assistant/system',
+    content          mediumtext                          null,
+    enhanced_content mediumtext                          null,
+    tool_call        mediumtext                          null,
+    tool_exec_result text                                null,
+    input_tokens     int                                 null comment 'token++',
+    output_tokens    int                                 null comment 'tokenAI',
+    created_at       timestamp default CURRENT_TIMESTAMP null
+);
 
 create index idx_conversation_created
     on t_chat_history (conversation_id, created_at);
@@ -33,32 +32,31 @@ create index idx_conversation_role
 
 create table t_conversation
 (
-    id                       bigint auto_increment comment '会话ID'
+    id                       bigint auto_increment comment 'ID'
         primary key,
-    conversation_id          varchar(50)                           null comment '会话id',
-    user_id                  bigint                                not null comment '用户ID，关联用户表',
-    role_id                  bigint                                not null comment '角色ID，关联角色表',
-    title                    varchar(200)                          null comment '会话标题，如"与小柴的冒险之旅"',
-    conversation_type        varchar(50) default 'COMPANION'       null comment '会话类型：COMPANION=陪伴，ADVENTURE=冒险，GUIDANCE=指导，MEMORIAL=纪念',
-    status                   tinyint     default 1                 null comment '会话状态：1=活跃，2=暂停，3=完结',
-    intimacy_level           int         default 0                 null comment '亲密度等级：0-100，影响角色回应深度',
-    last_message_at          timestamp                             null comment '最后互动时间',
-    context_status           tinyint     default 1                 null comment '上下文状态：1=正常，2=已清空等待重建',
-    last_context_clear_at    timestamp                             null comment '最后一次上下文清空时间',
-    current_context_messages int         default 0                 null comment '当前上下文中的消息数量',
-    context_window_size      int         default 20                null comment '上下文窗口大小（最近N条消息）',
-    message_count            int         default 0                 null comment '对话消息总数',
-    total_input_tokens       int         default 0                 null comment '累计输入token数',
-    total_output_tokens      int         default 0                 null comment '累计输出token数',
-    personality_adjustment   json                                  null comment '个性化调整：{"energy_level": "high", "response_style": "playful"}',
-    tags                     varchar(500)                          null comment '标签：如"日常陪伴,心情低落,需要鼓励"等',
-    special_notes            text                                  null comment '特殊备注：用户重要信息，角色需要记住的内容',
-    created_at               timestamp   default CURRENT_TIMESTAMP null comment '建立连接时间',
-    updated_at               timestamp   default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    conversation_id          varchar(50)                           null comment 'id',
+    user_id                  bigint                                not null comment 'ID',
+    role_id                  bigint                                not null comment 'ID',
+    title                    varchar(200)                          null comment '""',
+    conversation_type        varchar(50) default 'COMPANION'       null comment 'COMPANION=ADVENTURE=GUIDANCE=MEMORIAL=',
+    status                   tinyint     default 1                 null comment '1=2=3=',
+    intimacy_level           int         default 0                 null comment '0-100',
+    last_message_at          timestamp                             null,
+    context_status           tinyint     default 1                 null comment '1=2=',
+    last_context_clear_at    timestamp                             null,
+    current_context_messages int         default 0                 null,
+    context_window_size      int         default 20                null comment 'N',
+    message_count            int         default 0                 null,
+    total_input_tokens       int         default 0                 null comment 'token',
+    total_output_tokens      int         default 0                 null comment 'token',
+    personality_adjustment   json                                  null comment '{"energy_level": "high", "response_style": "playful"}',
+    tags                     varchar(500)                          null comment '",,"',
+    special_notes            text                                  null,
+    created_at               timestamp   default CURRENT_TIMESTAMP null,
+    updated_at               timestamp   default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
     constraint idx_user_role
         unique (user_id, role_id)
-)
-    comment '会话表';
+);
 
 create index idx_context_status
     on t_conversation (context_status);
@@ -77,15 +75,14 @@ create index idx_user_status
 
 create table t_conversation_summary
 (
-    id              bigint auto_increment comment '摘要ID'
+    id              bigint auto_increment comment 'ID'
         primary key,
-    conversation_id varchar(50)                           not null comment '会话ID',
-    summary_content text                                  not null comment '摘要内容：重要信息、用户喜好、关键事件等',
-    summary_type    varchar(20) default 'AUTO'            null comment '摘要类型：AUTO=自动生成，MANUAL=手动创建',
-    message_range   varchar(100)                          null comment '摘要覆盖的消息范围，如"第1-50条消息"',
-    created_at      timestamp   default CURRENT_TIMESTAMP null comment '摘要生成时间'
-)
-    comment '会话摘要表';
+    conversation_id varchar(50)                           not null comment 'ID',
+    summary_content text                                  not null,
+    summary_type    varchar(20) default 'AUTO'            null comment 'AUTO=MANUAL=',
+    message_range   varchar(100)                          null comment '"1-50"',
+    created_at      timestamp   default CURRENT_TIMESTAMP null
+);
 
 create index idx_conversation
     on t_conversation_summary (conversation_id);
@@ -97,14 +94,14 @@ create table t_doc
 (
     id          bigint auto_increment
         primary key,
-    file_id     varchar(100)                        not null comment '文件ID',
-    user_id     bigint                              not null comment '用户ID',
-    role_id     bigint                              not null comment '角色ID',
-    file_url    text                                not null comment '文件访问地址',
-    file_name   varchar(255)                        not null comment '文件名',
-    file_size   decimal(20, 2)                      null comment '文件大小',
-    create_time timestamp default CURRENT_TIMESTAMP not null comment '创建时间',
-    update_time timestamp default CURRENT_TIMESTAMP not null comment '最后更新时间'
+    file_id     varchar(100)                        not null comment 'ID',
+    user_id     bigint                              not null comment 'ID',
+    role_id     bigint                              not null comment 'ID',
+    file_url    text                                not null,
+    file_name   varchar(255)                        not null,
+    file_size   decimal(20, 2)                      null,
+    create_time timestamp default CURRENT_TIMESTAMP not null,
+    update_time timestamp default CURRENT_TIMESTAMP not null
 );
 
 create table t_intimacy_factors
@@ -112,12 +109,11 @@ create table t_intimacy_factors
     id              bigint auto_increment
         primary key,
     conversation_id varchar(50)                         not null,
-    factor_type     varchar(50)                         not null comment '影响因素类型',
-    factor_value    int                                 not null comment '影响值（正负数）',
-    description     varchar(200)                        null comment '触发原因',
+    factor_type     varchar(50)                         not null,
+    factor_value    int                                 not null,
+    description     varchar(200)                        null,
     created_at      timestamp default CURRENT_TIMESTAMP null
-)
-    comment '亲密度影响因素记录表';
+);
 
 create index idx_conversation_created
     on t_intimacy_factors (conversation_id, created_at);
@@ -127,49 +123,64 @@ create index idx_factor_type
 
 create table t_role
 (
-    id           bigint auto_increment comment '主键ID'
+    id           bigint auto_increment comment 'ID'
         primary key,
-    code         varchar(50)                         not null comment '角色唯一标识码，如 GUIDE/WARRIOR/MAGE',
-    name         varchar(100)                        not null comment '角色展示名称',
-    avatar_url   varchar(255)                        null comment '角色头像URL',
-    description  text                                null comment '角色背景描述',
-    ai_setting   json                                null comment 'AI模型配置，包含model_name、system_prompt、temperature、max_tokens、top_p等参数',
-    role_setting json                                null comment '角色特性配置，包含性格特征、能力描述、行为规则等',
-    status       tinyint   default 1                 null comment '状态：1=启用，0=禁用',
-    sort_order   int       default 0                 null comment '排序权重',
-    created_at   timestamp default CURRENT_TIMESTAMP null comment '创建时间',
-    updated_at   timestamp default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    code         varchar(50)                         not null comment ' GUIDE/WARRIOR/MAGE',
+    name         varchar(100)                        not null,
+    avatar_url   varchar(255)                        null comment 'URL',
+    description  text                                null,
+    ai_setting   json                                null comment 'AImodel_namesystem_prompttemperaturemax_tokenstop_p',
+    role_setting json                                null,
+    status       tinyint   default 1                 null comment '1=0=',
+    sort_order   int       default 0                 null,
+    created_at   timestamp default CURRENT_TIMESTAMP null,
+    updated_at   timestamp default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
     constraint code
         unique (code)
-)
-    comment '角色信息表';
+);
 
 create index idx_status_sort
     on t_role (status, sort_order);
 
+create table t_travel_planer_history
+(
+    id          bigint unsigned auto_increment
+        primary key,
+    user_id     bigint unsigned                    not null,
+    role_id     bigint unsigned                    null,
+    destination varchar(255)                       null,
+    days        int                                null,
+    people      varchar(255)                       null,
+    preferences json     default (json_array())    null,
+    md_path     varchar(1024)                      not null,
+    md_url      varchar(2048)                      null,
+    created_at  datetime default CURRENT_TIMESTAMP not null
+)
+    charset = utf8mb4;
+
+create index idx_user_created
+    on t_travel_planer_history (user_id asc, created_at desc);
+
 create table t_user
 (
-    id         bigint auto_increment comment '用户ID'
+    id         bigint auto_increment comment 'ID'
         primary key,
-    email      varchar(100)                        not null comment '邮箱',
-    password   varchar(255)                        not null comment '密码',
-    nickname   varchar(50)                         null comment '用户昵称',
-    avatar_url varchar(255)                        null comment '头像URL',
-    status     tinyint   default 1                 null comment '状态：1=正常，0=禁用',
-    created_at timestamp default CURRENT_TIMESTAMP null comment '注册时间',
-    updated_at timestamp default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    email      varchar(100)                        not null,
+    password   varchar(255)                        not null,
+    nickname   varchar(50)                         null,
+    avatar_url varchar(255)                        null comment 'URL',
+    status     tinyint   default 1                 null comment '1=0=',
+    created_at timestamp default CURRENT_TIMESTAMP null,
+    updated_at timestamp default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
     constraint email
         unique (email)
-)
-    comment '用户表';
+);
 
 create index idx_email
     on t_user (email);
 
 create index idx_status
     on t_user (status);
-
-
 
 
 -- 插入初始角色数据

@@ -16,7 +16,6 @@ TripDoge 后端项目基于 Spring Boot 3.3.2 + Java 21，默认端口 7979，AP
 export REDIS_HOST=""
 export REDIS_PORT=""
 export REDIS_PASSWORD=""
-export REDIS_DATABASE=""
 
 export MYSQL_HOST=""
 export MYSQL_PORT=""
@@ -24,25 +23,10 @@ export MYSQL_DATABASE=""
 export MYSQL_USERNAME=""
 export MYSQL_PASSWORD=""
 
-export MAIL_PORT="465"
-export MAIL_USERNAME=""
-export MAIL_PASSWORD=""
-
 export MINIO_ENDPOINT=""
 export MINIO_PORT=""
 export MINIO_AK=""
 export MINIO_SK=""
-
-export PGVECTOR_DATABASE=""
-export PGVECTOR_USER=""
-export PGVECTOR_PASSWORD=""
-export PGVECTOR_TABLE=""
-
-export DASHSCOPE_API_KEY=""
-
-export SEARCH_MCP_LINK=""
-
-export RABBITMQ_HOST=""
 
 export PGVECTOR_HOST=""
 export PGVECTOR_PORT=""
@@ -50,6 +34,16 @@ export PGVECTOR_DATABASE=""
 export PGVECTOR_USER=""
 export PGVECTOR_PASSWORD=""
 export PGVECTOR_TABLE=""
+
+export DASHSCOPE_API_KEY=""
+export SEARCH_MCP_LINK=""
+export MAP_MCP_LINK=""
+
+export RABBITMQ_HOST=""
+
+export MAIL_PORT="465"
+export MAIL_USERNAME=""
+export MAIL_PASSWORD=""
 ```
 
 
