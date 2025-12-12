@@ -24,23 +24,25 @@ public class CustomerChatMemoryProvider implements ChatMemoryProvider {
     private final Map<String, ChatMemory> map = new HashMap<>();
 
     @Override
-    public ChatMemory get(Object o) {
-        String key = o.toString();
+    public ChatMemory get(Object id) {
+        String key = id.toString();
         if (!map.containsKey(key)) {
             map.put(key, createMemory(key));
         }
-        return map.get(o.toString());
+        return map.get(id.toString());
     }
 
     public Map<String, ChatMemory> getChatMemoryMap() {
         return map;
     }
 
-    private ChatMemory createMemory(Object id) {
-        return MessageWindowChatMemory.builder()
-            .id(id)
-            .maxMessages(MAX_MESSAGES)
-            .chatMemoryStore(memoryStore)
-            .build();
+    public ChatMemory createMemory(Object id) {
+        MessageWindowChatMemory memory = MessageWindowChatMemory.builder()
+                .id(id)
+                .maxMessages(MAX_MESSAGES)
+                .chatMemoryStore(memoryStore)
+                .build();
+        map.put(id.toString(), memory);
+        return memory;
     }
 }

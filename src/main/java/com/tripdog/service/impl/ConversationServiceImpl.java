@@ -76,10 +76,10 @@ public class ConversationServiceImpl implements ConversationService {
         if (role == null) {
             throw new RuntimeException("角色不存在: " + roleId);
         }
-
         // 创建会话
         ConversationDO conversation = ConversationBuilder.buildNewConversation(userId, roleId, role.getName());
         conversationMapper.insert(conversation);
+        chatMemoryProvider.createMemory(conversation.getConversationId());
 
         // 设置系统提示词 todo 解耦
         String systemPrompt = roleService.getSystemPrompt(roleId);
@@ -95,8 +95,7 @@ public class ConversationServiceImpl implements ConversationService {
     @Override
     @Transactional
     public void resetConversationContext(String conversationId) {
-        Map<String, ChatMemory> chatMemoryMap = chatMemoryProvider.getChatMemoryMap();
-        ChatMemory chatMemory = chatMemoryMap.get(conversationId);
+        ChatMemory chatMemory = chatMemoryProvider.get(conversationId);
         ChatMessage systemMessage = chatMemory.messages().removeFirst();
         chatMemory.clear();
         chatMemory.add(systemMessage);
