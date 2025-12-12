@@ -99,8 +99,15 @@ docs/                      # 配置与功能说明
 - 启动失败：优先检查数据库、Redis、MinIO、DashScope 等连接与配置。
 - 更多排查与环境变量说明参见 `docs/TripDoge项目启动配置说明.md`。
 
+## 前端简览
+<img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/4d687317-2788-482b-8409-cd6fa764c2d9" />
+<img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/df937ba6-7cc9-4975-94c9-7224dc640bf5" />
+<img width="3024" height="1522" alt="4be7ab665bb8915d005d229b59924606" src="https://github.com/user-attachments/assets/ab64f68f-8636-4c73-ac49-d054ec68708a" />
+<img width="3024" height="1522" alt="4be7ab665bb8915d005d229b59924606" src="https://github.com/user-attachments/assets/ac2e226e-64d6-4bb2-8843-33e671b0c04b" />
+
+
 ## 贡献与维护
 - 欢迎 PR 与 Issue
-- 文档版本：v1.0（2025年9月28日）
+- 文档更新时间：2025年12月12日
 
 更多细节、配置与完整指引请查看 `docs/`，此 README 在保留原始信息的基础上补充了旅行规划与 SSE 相关概览。***
