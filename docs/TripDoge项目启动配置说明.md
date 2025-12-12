@@ -13,54 +13,45 @@ TripDoge 后端项目基于 Spring Boot 3.3.2 + Java 21，默认端口 7979，AP
 ### 必需配置
 
 ```bash
-# MySQL 数据库 (数据库名:trip_dog)
-MYSQL_PASSWORD=your_password      # (必需)
-MYSQL_HOST=localhost              # 默认localhost
-MYSQL_PORT=3306                   # 默认3306
-MYSQL_USERNAME=root               # 默认root
+export REDIS_HOST=""
+export REDIS_PORT=""
+export REDIS_PASSWORD=""
+export REDIS_DATABASE=""
 
-# Redis 缓存和会话
-REDIS_HOST=your_redis_host        # (必需)
-REDIS_PORT=6379                   # (必需)
-REDIS_PASSWORD=your_password      # (必需)
-REDIS_DATABASE=0                  # (必需)
+export MYSQL_HOST=""
+export MYSQL_PORT=""
+export MYSQL_DATABASE=""
+export MYSQL_USERNAME=""
+export MYSQL_PASSWORD=""
 
-# AI 服务 (DashScope通义千问)
-DASHSCOPE_API_KEY=your_api_key    # (必需)
-# 使用模型: qwen-plus (对话和流式)、text-embedding-v3 (嵌入)
+export MAIL_PORT="465"
+export MAIL_USERNAME=""
+export MAIL_PASSWORD=""
 
-# MinIO 对象存储 (存储桶:trip-doge)
-MINIO_ENDPOINT=your_endpoint      # (必需)
-MINIO_AK=your_access_key         # (必需)
-MINIO_SK=your_secret_key         # (必需)
+export MINIO_ENDPOINT=""
+export MINIO_PORT=""
+export MINIO_AK=""
+export MINIO_SK=""
 
-# 邮件服务 (注册验证码)
-MAIL_USERNAME=your_email          # (必需)
-MAIL_PASSWORD=your_auth_code      # (必需)
+export PGVECTOR_DATABASE=""
+export PGVECTOR_USER=""
+export PGVECTOR_PASSWORD=""
+export PGVECTOR_TABLE=""
+
+export DASHSCOPE_API_KEY=""
+
+export SEARCH_MCP_LINK=""
+
+export RABBITMQ_HOST=""
+
+export PGVECTOR_HOST=""
+export PGVECTOR_PORT=""
+export PGVECTOR_DATABASE=""
+export PGVECTOR_USER=""
+export PGVECTOR_PASSWORD=""
+export PGVECTOR_TABLE=""
 ```
 
-### 可选配置
-
-```bash
-SERVER_PORT=7979                  # 服务端口，默认7979
-MAIL_HOST=smtp.qq.com            # SMTP服务器，默认QQ邮箱
-MAIL_PORT=465                    # SMTP端口，默认465
-
-# PostgreSQL向量数据库 (用于文档向量存储)
-PGVECTOR_HOST=localhost          # 默认localhost
-PGVECTOR_PORT=5432              # 默认5432
-PGVECTOR_DATABASE=trip_vdb      # 默认trip_vdb
-PGVECTOR_USER=postgres          # 默认postgres
-PGVECTOR_PASSWORD=postgres      # 默认postgres
-PGVECTOR_TABLE=vectors_db       # 默认vectors_db
-
-# 跨域配置
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080  # 允许的前端域名
-CORS_ALLOW_CREDENTIALS=true     # 是否允许凭证，默认true
-
-# 其他配置(已有默认值，一般无需修改)
-# SERVER_IP=localhost            # 服务器IP，用于PostgreSQL连接默认值
-```
 
 ## 服务地址
 
@@ -112,5 +103,3 @@ java -jar target/tripdog-backend-1.0.0.jar
 - **文档向量化失败**: 检查PostgreSQL服务、pgvector插件安装
 
 ---
-
-**文档版本**: v1.0 | **更新时间**: 2025年9月28日

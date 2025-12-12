@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tripdog.mapper.TravelPlanerHistoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.tripdog.model.entity.TravelPlanerHistory">
+        <id     column="id"           property="id"          jdbcType="BIGINT"/>
+        <result column="user_id"      property="userId"      jdbcType="BIGINT"/>
+        <result column="role_id"      property="roleId"      jdbcType="BIGINT"/>
+        <result column="destination"  property="destination" jdbcType="VARCHAR"/>
+        <result column="days"         property="days"        jdbcType="INTEGER"/>
+        <result column="people"       property="people"      jdbcType="VARCHAR"/>
+        <result column="preferences"  property="preferences" jdbcType="LONGVARCHAR"/>
+        <result column="md_path"      property="mdPath"      jdbcType="VARCHAR"/>
+        <result column="md_url"       property="mdUrl"       jdbcType="VARCHAR"/>
+        <result column="created_at"   property="createdAt"   jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.tripdog.model.entity.TravelPlanerHistory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_travel_planer_history (
+            user_id, role_id, destination, days, people, preferences, md_path, md_url, created_at
+        ) VALUES (
+            #{userId}, #{roleId}, #{destination}, #{days}, #{people}, #{preferences}, #{mdPath}, #{mdUrl}, NOW()
+        )
+    </insert>
+
+    <select id="selectById" parameterType="long" resultMap="BaseResultMap">
+        SELECT * FROM t_travel_planer_history WHERE id = #{id}
+    </select>
+
+    <select id="selectByIdAndUser" resultMap="BaseResultMap">
+        SELECT * FROM t_travel_planer_history WHERE id = #{id} AND user_id = #{userId}
+    </select>
+
+    <select id="listByUser" resultMap="BaseResultMap">
+        SELECT * FROM t_travel_planer_history
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="listByUserAndRole" resultMap="BaseResultMap">
+        SELECT * FROM t_travel_planer_history
+        WHERE user_id = #{userId}
+        <if test="roleId != null">
+            AND role_id = #{roleId}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>
+

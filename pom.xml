@@ -28,8 +28,21 @@
         <mybatis.version>3.5.17</mybatis.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <minio.version>8.5.7</minio.version>
-        <dashscope.sdk.version>2.21.16</dashscope.sdk.version>
+        <dashscope.sdk.version>2.21.13</dashscope.sdk.version>
+        <langgraph4j.version>1.7.5</langgraph4j.version> <!-- 使用已发布版本 -->
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.bsc.langgraph4j</groupId>
+                <artifactId>langgraph4j-bom</artifactId>
+                <version>${langgraph4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Spring Boot Web Starter -->
@@ -61,6 +74,17 @@
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>3.0.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-langchain4j</artifactId>
+            <version>${langgraph4j.version}</version>
         </dependency>
 
         <dependency>
@@ -200,6 +224,13 @@
         </dependency>
 
     </dependencies>
+
+    <!-- PDF generation -->
+    <dependency>
+        <groupId>org.apache.pdfbox</groupId>
+        <artifactId>pdfbox</artifactId>
+        <version>2.0.30</version>
+    </dependency>
 
     <build>
         <plugins>

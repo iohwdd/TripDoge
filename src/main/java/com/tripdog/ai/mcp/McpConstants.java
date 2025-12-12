@@ -7,4 +7,6 @@ package com.tripdog.ai.mcp;
  */
 public class McpConstants {
     public static final String WEB_SEARCH = "web_search";
+    public static final String MAP_MCP = "map_mcp";
+
 }

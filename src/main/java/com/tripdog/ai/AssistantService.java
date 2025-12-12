@@ -1,5 +1,7 @@
 package com.tripdog.ai;
 
+import com.tripdog.ai.assistant.TravelPlaningAssistant;
+import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Configuration;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.ai.embedding.RetrieverFactory;
@@ -16,6 +18,9 @@ import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
+
+import static com.tripdog.ai.mcp.McpConstants.MAP_MCP;
 import static com.tripdog.ai.mcp.McpConstants.WEB_SEARCH;
 import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 
@@ -28,11 +33,16 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 @RequiredArgsConstructor
 public class AssistantService {
     final StreamingChatModel chatLanguageModel;
+    final ChatModel chatModel;
     final RetrieverFactory retrieverFactory;
     final CustomerChatMemoryProvider chatMemoryProvider;
     final McpClientFactory mcpClientFactory;
 
-    public ChatAssistant getAssistant() {
+    public ChatAssistant getAssistant(String systemPrompt) {
+        String effectiveSystemPrompt = StringUtils.hasText(systemPrompt)
+            ? systemPrompt
+            : "你是一个友好的AI助手，乐于帮助用户解决问题。请用友好、专业的语调回答用户的问题。";
+
         EmbeddingStoreContentRetriever embeddingStoreContentRetriever = retrieverFactory.getRetriever();
 
         RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
@@ -50,6 +60,8 @@ public class AssistantService {
 
         return AiServices.builder(ChatAssistant.class)
             .streamingChatModel(chatLanguageModel)
+            // langchain4j 新版本移除了 systemMessage，改用 provider
+            .systemMessageProvider(ctx -> effectiveSystemPrompt)
             .retrievalAugmentor(retrievalAugmentor)
             .chatMemoryProvider(chatMemoryProvider)
             .tools(new MyTools())
@@ -57,4 +69,27 @@ public class AssistantService {
             .build();
     }
 
+    public TravelPlaningAssistant getTravelPlaningAssistant() {
+        EmbeddingStoreContentRetriever embeddingStoreContentRetriever = retrieverFactory.getRetriever();
+
+        RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
+                .contentRetriever(embeddingStoreContentRetriever)
+                .contentAggregator(new DefaultContentAggregator())
+                .contentInjector(DefaultContentInjector.builder()
+                        .promptTemplate(PromptTemplate.from("{{userMessage}}" + INJECT_TEMPLATE + "{{contents}}"))
+                        .build())
+                .build();
+
+        McpClient mcpClient = mcpClientFactory.getMcpClient(MAP_MCP);
+        McpToolProvider toolProvider = McpToolProvider.builder()
+                .mcpClients(mcpClient)
+                .build();
+
+        return AiServices.builder(TravelPlaningAssistant.class)
+                .chatModel(chatModel)
+                .retrievalAugmentor(retrievalAugmentor)
+                .tools(new MyTools())
+                .toolProvider(toolProvider)
+                .build();
+    }
 }

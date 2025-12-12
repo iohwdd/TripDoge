@@ -45,3 +45,4 @@ tts:
 
 mcp:
   search-link: ${SEARCH_MCP_LINK}
+  map-link: ${MAP_MCP_LINK}

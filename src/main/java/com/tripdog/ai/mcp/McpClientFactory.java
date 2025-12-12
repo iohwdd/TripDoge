@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
+
+import static com.tripdog.ai.mcp.McpConstants.MAP_MCP;
 import static com.tripdog.ai.mcp.McpConstants.WEB_SEARCH;
 
 /**
@@ -23,6 +25,9 @@ import static com.tripdog.ai.mcp.McpConstants.WEB_SEARCH;
 public class McpClientFactory {
     @Value("${mcp.search-link}")
     private String searchMcpLink;
+    @Value("${mcp.map-link}")
+    private String mapMcpLink;
+
     private static final Map<String, McpClient> map = new HashMap<>();
 
     public McpClient getMcpClient(String k) {
@@ -32,7 +37,13 @@ public class McpClientFactory {
         McpClient client;
         switch (k) {
             case WEB_SEARCH:
-                client = getWebSearchMcpClient();
+                client = getClientMcp(searchMcpLink);
+                if (client != null) {
+                    map.put(k, client);
+                }
+                return client;
+            case MAP_MCP:
+                client = getClientMcp(mapMcpLink);
                 if (client != null) {
                     map.put(k, client);
                 }
@@ -41,10 +52,10 @@ public class McpClientFactory {
         return null;
     }
 
-    private McpClient getWebSearchMcpClient() {
+    private McpClient getClientMcp(String mcpUrl) {
         try {
             StreamableHttpMcpTransport transport = new StreamableHttpMcpTransport.Builder()
-                .url(searchMcpLink)
+                .url(mcpUrl)
                 .timeout(Duration.ofSeconds(5)) // 更短的超时时间
                 .logRequests(true)
                 .logResponses(true)

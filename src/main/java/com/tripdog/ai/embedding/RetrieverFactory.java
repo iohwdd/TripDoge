@@ -3,6 +3,7 @@ package com.tripdog.ai.embedding;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.tripdog.service.impl.UserSessionService;
 import org.springframework.context.annotation.Configuration;
 
 import com.tripdog.common.utils.ThreadLocalUtils;
@@ -30,6 +31,11 @@ public class RetrieverFactory {
     public EmbeddingStoreContentRetriever getRetriever() {
         Long userId = (Long) ThreadLocalUtils.get(USER_ID);
         Long roleId = (Long) ThreadLocalUtils.get(ROLE_ID);
+
+        if (userId == null || roleId == null) {
+            throw new IllegalStateException("ThreadLocal USER_ID/ROLE_ID not set before building retriever");
+        }
+
         String k = roleId + ":" + userId;
         if(cache.containsKey(k)) {
             return cache.get(k);
