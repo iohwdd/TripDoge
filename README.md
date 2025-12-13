@@ -103,7 +103,7 @@ docs/                      # 配置与功能说明
 <img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/4d687317-2788-482b-8409-cd6fa764c2d9" />
 <img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/df937ba6-7cc9-4975-94c9-7224dc640bf5" />
 <img width="3024" height="1522" alt="4be7ab665bb8915d005d229b59924606" src="https://github.com/user-attachments/assets/ab64f68f-8636-4c73-ac49-d054ec68708a" />
-<img width="3024" height="1522" alt="4be7ab665bb8915d005d229b59924606" src="https://github.com/user-attachments/assets/ac2e226e-64d6-4bb2-8843-33e671b0c04b" />
+<img width="3024" height="1522" alt="image" src="https://github.com/user-attachments/assets/a64618a7-6673-43b6-8a14-b2e4b20ca7fa" />
 
 
 ## 贡献与维护
