@@ -1,6 +1,8 @@
 package com.tripdog.ai.tts;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 public class QwenRealtimeTtsService {
 
     private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
+    private final Map<String, RealtimeTtsSession> sessionHolder = new ConcurrentHashMap<>();
 
     @Value("${tts.qwen.enabled:true}")
     private boolean enabled;
@@ -85,6 +88,28 @@ public class QwenRealtimeTtsService {
      */
     public Optional<RealtimeTtsSession> startSession(Consumer<String> audioConsumer) {
         return startSession(audioConsumer, null);
+    }
+
+    /**
+     * 以 key 为标识启动新会话，若已有同 key 会话则先终止。
+     */
+    public Optional<RealtimeTtsSession> startOrReplaceSession(String key, Consumer<String> audioConsumer, String voice) {
+        stopSession(key);
+        Optional<RealtimeTtsSession> session = startSession(audioConsumer, voice);
+        session.ifPresent(s -> sessionHolder.put(key, s));
+        return session;
+    }
+
+    public void stopSession(String key) {
+        if (key == null) return;
+        RealtimeTtsSession session = sessionHolder.remove(key);
+        if (session != null) {
+            try {
+                session.close();
+            } catch (Exception e) {
+                log.warn("Failed to close existing TTS session for key {}", key, e);
+            }
+        }
     }
 
     public class RealtimeTtsSession implements AutoCloseable {

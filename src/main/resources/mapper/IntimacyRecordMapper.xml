@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tripdog.mapper.IntimacyRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.tripdog.model.entity.IntimacyRecordDO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="uid" property="uid" jdbcType="BIGINT"/>
+        <result column="role_id" property="roleId" jdbcType="BIGINT"/>
+        <result column="delta" property="delta" jdbcType="INTEGER"/>
+        <result column="intimacy" property="intimacy" jdbcType="INTEGER"/>
+        <result column="reason" property="reason" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.tripdog.model.entity.IntimacyRecordDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_intimacy_record (uid, role_id, delta, intimacy, reason, created_at)
+        VALUES (#{uid}, #{roleId}, #{delta}, #{intimacy}, #{reason}, NOW())
+    </insert>
+
+    <select id="listByUserAndRole" resultMap="BaseResultMap">
+        SELECT * FROM t_intimacy_record
+        WHERE uid = #{uid} AND role_id = #{roleId}
+        ORDER BY id DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+</mapper>
+

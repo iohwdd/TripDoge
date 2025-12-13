@@ -20,6 +20,7 @@ import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.dto.ChatReqDTO;
 import com.tripdog.service.ChatService;
+import com.tripdog.service.IntimacyService;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
 import com.tripdog.common.utils.RoleConfigParser;
@@ -49,6 +50,7 @@ public class ChatServiceImpl implements ChatService {
     private final FileUploadUtils fileUploadUtils;
     private final QwenRealtimeTtsService qwenRealtimeTtsService;
     private final UserSessionService userSessionService;
+    private final IntimacyService intimacyService;
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO chatReqDTO) {
@@ -56,10 +58,28 @@ public class ChatServiceImpl implements ChatService {
         SseEmitter emitter = new SseEmitter(-1L);
         final QwenRealtimeTtsService.RealtimeTtsSession[] ttsHolder = new QwenRealtimeTtsService.RealtimeTtsSession[1];
         AtomicBoolean emitterClosed = new AtomicBoolean(false);
+        final String[] ttsKeyHolder = new String[1];
 
         try {
             // 1. 获取或创建会话
             ConversationDO conversation = conversationServiceImpl.getOrCreateConversation(userId, roleId);
+            ttsKeyHolder[0] = "chat:" + conversation.getConversationId();
+            // 新一轮对话时，若上次 TTS 还在播，先终止再开始
+            qwenRealtimeTtsService.stopSession(ttsKeyHolder[0]);
+            try {
+                var intimacyChange = intimacyService.handleUserMessage(userId, roleId);
+                if (intimacyChange != null && intimacyChange.getDelta() != null && intimacyChange.getDelta() > 0) {
+                    // 推送亲密度提升事件
+                    emitter.send(SseEmitter.event()
+                        .name("intimacy")
+                        .data(Map.of(
+                            "delta", intimacyChange.getDelta(),
+                            "intimacy", intimacyChange.getIntimacy() == null ? null : intimacyChange.getIntimacy().getIntimacy()
+                        )));
+                }
+            } catch (Exception e) {
+                log.warn("亲密度更新失败，roleId={}, userId={}", roleId, userId, e);
+            }
 
             // 2. 获取角色信息
             RoleDO role = roleMapper.selectById(roleId);
@@ -77,7 +97,7 @@ public class ChatServiceImpl implements ChatService {
             ChatAssistant assistant = assistantService.getAssistant(systemPrompt);
 
             ttsHolder[0] = Boolean.TRUE.equals(chatReqDTO.getStreamAudio())
-                ? qwenRealtimeTtsService.startSession(delta -> sendAudioDelta(emitter, emitterClosed, delta), chatReqDTO.getVoice()).orElse(null)
+                ? qwenRealtimeTtsService.startOrReplaceSession(ttsKeyHolder[0], delta -> sendAudioDelta(emitter, emitterClosed, delta), chatReqDTO.getVoice()).orElse(null)
                 : null;
 
             MultipartFile file = chatReqDTO.getFile();
@@ -117,6 +137,7 @@ public class ChatServiceImpl implements ChatService {
                     if (ttsHolder[0] != null) {
                         ttsHolder[0].finish();
                         ttsHolder[0].awaitCompletion(10, TimeUnit.SECONDS);
+                        qwenRealtimeTtsService.stopSession(ttsKeyHolder[0]);
                     }
 
                     if (!emitterClosed.get()) {
@@ -139,6 +160,7 @@ public class ChatServiceImpl implements ChatService {
                 if (ttsHolder[0] != null) {
                     ttsHolder[0].finish();
                     ttsHolder[0].close();
+                    qwenRealtimeTtsService.stopSession(ttsKeyHolder[0]);
                 }
                 if (emitterClosed.compareAndSet(false, true)) {
                 emitter.completeWithError(ex);
@@ -149,6 +171,9 @@ public class ChatServiceImpl implements ChatService {
             log.error("聊天服务处理异常", e);
             if (ttsHolder[0] != null) {
                 ttsHolder[0].close();
+            }
+            if (ttsKeyHolder[0] != null) {
+                qwenRealtimeTtsService.stopSession(ttsKeyHolder[0]);
             }
             if (emitterClosed.compareAndSet(false, true)) {
             emitter.completeWithError(e);

@@ -28,7 +28,8 @@
         <mybatis.version>3.5.17</mybatis.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <minio.version>8.5.7</minio.version>
-        <dashscope.sdk.version>2.21.13</dashscope.sdk.version>
+        <!-- DashScope SDK：上游 2.21.13 未在中央仓库，回落到可用版本 -->
+        <dashscope.sdk.version>2.17.0</dashscope.sdk.version>
         <langgraph4j.version>1.7.5</langgraph4j.version> <!-- 使用已发布版本 -->
     </properties>
 
@@ -217,20 +218,13 @@
         </dependency>
 
         <!-- DashScope Java SDK (TTS / Tokenizer etc.) -->
-        <dependency>
-            <groupId>com.alibaba.dashscope</groupId>
-            <artifactId>dashscope-sdk-java</artifactId>
-            <version>${dashscope.sdk.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.alibaba.dashscope</groupId>-->
+<!--            <artifactId>dashscope-sdk-java</artifactId>-->
+<!--            <version>${dashscope.sdk.version}</version>-->
+<!--        </dependency>-->
 
     </dependencies>
-
-    <!-- PDF generation -->
-    <dependency>
-        <groupId>org.apache.pdfbox</groupId>
-        <artifactId>pdfbox</artifactId>
-        <version>2.0.30</version>
-    </dependency>
 
     <build>
         <plugins>

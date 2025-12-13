@@ -121,6 +121,38 @@ create index idx_conversation_created
 create index idx_factor_type
     on t_intimacy_factors (factor_type);
 
+-- 亲密度主表
+create table if not exists t_intimacy
+(
+    id                  bigint auto_increment primary key,
+    uid                 bigint                              not null,
+    role_id             bigint                              not null,
+    intimacy            int     default 0                   not null,
+    last_msg_time       datetime                            null,
+    last_daily_bonus_date date                              null,
+    created_at          datetime default CURRENT_TIMESTAMP  not null,
+    updated_at          datetime default CURRENT_TIMESTAMP  not null on update CURRENT_TIMESTAMP,
+    constraint uk_intimacy_uid_role unique (uid, role_id)
+)
+    charset = utf8mb4;
+
+create index idx_intimacy_last_msg on t_intimacy (last_msg_time);
+
+-- 亲密度变更流水
+create table if not exists t_intimacy_record
+(
+    id         bigint auto_increment primary key,
+    uid        bigint                             not null,
+    role_id    bigint                             not null,
+    delta      int                                not null,
+    intimacy   int                                not null,
+    reason     varchar(32)                        not null,
+    created_at datetime default CURRENT_TIMESTAMP not null
+)
+    charset = utf8mb4;
+
+create index idx_intimacy_record_user_role_time on t_intimacy_record (uid, role_id, created_at);
+
 create table t_role
 (
     id           bigint auto_increment comment 'ID'
