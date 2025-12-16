@@ -1,6 +1,7 @@
 package com.tripdog.ai;
 
 import com.tripdog.ai.assistant.TravelPlaningAssistant;
+import com.tripdog.config.ai.AiModelHolder;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Configuration;
 import com.tripdog.ai.assistant.ChatAssistant;
@@ -32,13 +33,13 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 @Configuration
 @RequiredArgsConstructor
 public class AssistantService {
-    final StreamingChatModel chatLanguageModel;
-    final ChatModel chatModel;
+    final AiModelHolder aiModelHolder;
     final RetrieverFactory retrieverFactory;
     final CustomerChatMemoryProvider chatMemoryProvider;
     final McpClientFactory mcpClientFactory;
 
     public ChatAssistant getAssistant(String systemPrompt) {
+        StreamingChatModel chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.QwenStreamingChat);
         String effectiveSystemPrompt = StringUtils.hasText(systemPrompt)
             ? systemPrompt
             : "你是一个友好的AI助手，乐于帮助用户解决问题。请用友好、专业的语调回答用户的问题。";
@@ -70,6 +71,7 @@ public class AssistantService {
     }
 
     public TravelPlaningAssistant getTravelPlaningAssistant() {
+        ChatModel chatModel = aiModelHolder.getDefaultChat();
         EmbeddingStoreContentRetriever embeddingStoreContentRetriever = retrieverFactory.getRetriever();
 
         RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()

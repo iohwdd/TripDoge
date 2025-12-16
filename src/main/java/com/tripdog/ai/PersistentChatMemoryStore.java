@@ -132,8 +132,9 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
 
     @Override
     public void deleteMessages(Object o) {
-        String conversationId = o.toString();
-        chatHistoryMapper.deleteByConversationId(conversationId);
+        // 模型记忆删除不清表库数据
+        // String conversationId = o.toString();
+        // chatHistoryMapper.deleteByConversationId(conversationId);
     }
 
 

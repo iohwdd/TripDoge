@@ -29,7 +29,6 @@ import com.tripdog.ai.tts.QwenRealtimeTtsService;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +41,6 @@ import static com.tripdog.common.Constants.ROLE_ID;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatServiceImpl implements ChatService {
-    private final StreamingChatModel chatLanguageModel;
     private final ConversationServiceImpl conversationServiceImpl;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;
@@ -117,15 +115,17 @@ public class ChatServiceImpl implements ChatService {
                     return;
                 }
                 try {
-                    responseBuilder.append(data);
-                    if (ttsHolder[0] != null) {
-                        ttsHolder[0].appendText(data);
+                    if (data != null) {
+                        responseBuilder.append(data);
+                        if (ttsHolder[0] != null) {
+                            ttsHolder[0].appendText(data);
+                        }
+                        emitter.send(SseEmitter.event()
+                                .data(data)
+                                .id(String.valueOf(System.currentTimeMillis()))
+                                .name("message")
+                        );
                     }
-                    emitter.send(SseEmitter.event()
-                        .data(data)
-                        .id(String.valueOf(System.currentTimeMillis()))
-                        .name("message")
-                    );
                 } catch (Exception e) {
                     handleEmitterException(emitter, emitterClosed, e);
                 }

@@ -1,5 +1,6 @@
 package com.tripdog.ai.compress;
 
+import com.tripdog.config.ai.AiModelHolder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,12 +17,12 @@ import lombok.RequiredArgsConstructor;
 @Configuration
 @RequiredArgsConstructor
 public class CompressAssistantConfig {
-    private final ChatModel chatLangModel;
+    private final AiModelHolder aiModelHolder;
 
     @Bean
     CompressAssistant compressAssistant() {
         return AiServices.builder(CompressAssistant.class)
-            .chatModel(chatLangModel)
+            .chatModel(aiModelHolder.getDefaultChat())
             .build();
     }
 }

@@ -1,16 +1,16 @@
 langchain4j:
   community:
     dashscope:
-      # LLM
-      chat-model:
-        api-key: ${DASHSCOPE_API_KEY}
-        model-name: qwen3-max
-        temperature: 0.7
-      # Streaming LLM
-      streaming-chat-model:
-        api-key: ${DASHSCOPE_API_KEY}
-        model-name: qwen3-max
-        temperature: 0.7
+#      # LLM
+#      chat-model:
+#        api-key: ${DASHSCOPE_API_KEY}
+#        model-name: qwen3-max
+#        temperature: 0.7
+#      # Streaming LLM
+#      streaming-chat-model:
+#        api-key: ${DASHSCOPE_API_KEY}
+#        model-name: qwen3-max
+#        temperature: 0.7
       # Embedding model
       embedding-model:
         api-key: ${DASHSCOPE_API_KEY}
@@ -46,3 +46,6 @@ tts:
 mcp:
   search-link: ${SEARCH_MCP_LINK}
   map-link: ${MAP_MCP_LINK}
+
+api:
+  zhipu: ${ZHIPU_API_KEY}
