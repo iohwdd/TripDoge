@@ -42,12 +42,10 @@ import static com.tripdog.common.Constants.ROLE_ID;
 @Slf4j
 public class ChatServiceImpl implements ChatService {
     private final ConversationServiceImpl conversationServiceImpl;
-    private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;
     private final AssistantService assistantService;
     private final FileUploadUtils fileUploadUtils;
     private final QwenRealtimeTtsService qwenRealtimeTtsService;
-    private final UserSessionService userSessionService;
     private final IntimacyService intimacyService;
 
     @Override

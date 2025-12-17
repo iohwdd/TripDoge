@@ -157,7 +157,6 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         if (message instanceof SystemMessage) {
             return ((SystemMessage) message).text();
         } else if (message instanceof UserMessage) {
-
             return ((UserMessage) message).singleText();
         } else if (message instanceof AiMessage) {
             AiMessage aiMessage = (AiMessage) message;
@@ -167,7 +166,12 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
             // } else {
             //     return aiMessage.text();
             // }
-            return aiMessage.text();
+            if (aiMessage.text() != null) {
+                // fixme 使用智谱模型时，回复内容前缀有一大串null字符串，疑似langchain4j的bug
+                return aiMessage.text().replace("null", "");
+            }
+            // 工具调用无内容
+            return null;
         } else if (message instanceof ToolExecutionResultMessage) {
             ToolExecutionResultMessage toolMsg = (ToolExecutionResultMessage) message;
             return serializeToolExecutionResult(toolMsg);

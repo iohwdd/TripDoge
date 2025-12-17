@@ -39,7 +39,7 @@ public class AssistantService {
     final McpClientFactory mcpClientFactory;
 
     public ChatAssistant getAssistant(String systemPrompt) {
-        StreamingChatModel chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.QwenStreamingChat);
+        StreamingChatModel chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.ZhipuAiStreamingChat);
         String effectiveSystemPrompt = StringUtils.hasText(systemPrompt)
             ? systemPrompt
             : "你是一个友好的AI助手，乐于帮助用户解决问题。请用友好、专业的语调回答用户的问题。";
@@ -61,7 +61,6 @@ public class AssistantService {
 
         return AiServices.builder(ChatAssistant.class)
             .streamingChatModel(chatLanguageModel)
-            // langchain4j 新版本移除了 systemMessage，改用 provider
             .systemMessageProvider(ctx -> effectiveSystemPrompt)
             .retrievalAugmentor(retrievalAugmentor)
             .chatMemoryProvider(chatMemoryProvider)
