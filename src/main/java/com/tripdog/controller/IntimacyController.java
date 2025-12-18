@@ -6,7 +6,7 @@ import com.tripdog.model.entity.IntimacyDO;
 import com.tripdog.model.vo.IntimacyVO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.IntimacyService;
-import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.service.direct.UserSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

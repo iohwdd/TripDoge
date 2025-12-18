@@ -125,6 +125,42 @@ public class MinioUtils {
         return url;
     }
 
+    /**
+     * 获取带有下载行为的临时 URL（Content-Disposition: attachment）
+     * 浏览器访问此 URL 会直接下载文件，而不是预览
+     */
+    public String getDownloadUrlByPath(String path) {
+        return getDownloadUrlByPath(path, null);
+    }
+
+    /**
+     * 获取带有下载行为的临时 URL，支持自定义文件名
+     * @param path 对象路径
+     * @param fileName 下载时显示的文件名（不指定则使用原文件名）
+     */
+    public String getDownloadUrlByPath(String path, String fileName) {
+        String objectKey = normalizeObjectKey(path);
+        String dispositionFileName = fileName != null ? fileName : objectKey.substring(objectKey.lastIndexOf('/') + 1);
+        String url;
+        try {
+            url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .expiry(60 * 60)
+                            .extraQueryParams(java.util.Map.of(
+                                    "response-content-disposition",
+                                    "attachment; filename=\"" + dispositionFileName + "\""
+                            ))
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(ErrorCode.NO_FOUND_FILE.getMessage(), e);
+        }
+        return url;
+    }
+
     public void removeObject(String objectKey) {
         try {
             minioClient.removeObject(

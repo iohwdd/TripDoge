@@ -9,9 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.image.Image;
+import dev.langchain4j.data.message.*;
 
 /**
  * 会话和聊天历史对象构建器
@@ -55,12 +54,37 @@ public class ConversationBuilder {
 
     /**
      * 创建用户消息
+     * 处理多部分内容：TEXT + IMAGE（文件/图片附件）
      */
-    public static ChatHistoryDO buildUserMessage(String conversationId, String content) {
+    public static ChatHistoryDO buildUserMessage(String conversationId, UserMessage userMessage) {
         ChatHistoryDO chatHistory = new ChatHistoryDO();
+        List<Content> contents = userMessage.contents();
+
+        // 遍历所有内容部分
+        for (Content content : contents) {
+            switch (content.type()) {
+                case TEXT:
+                    // 从 TextContent 中提取纯文本
+                    TextContent textContent = (TextContent) content;
+                    chatHistory.setContent(textContent.text());
+                    break;
+                case IMAGE:
+                    // 从 ImageContent 中提取图片/文件 URL
+                    // 统一用 ImageContent 包装所有附件（图片、文件等）
+                    // revisedPrompt 字段存储原始文件名
+                    Image image = ((ImageContent) content).image();
+                    String imageUrl = image.url().toString();
+                    String attachmentName = image.revisedPrompt();
+                    chatHistory.setAttachmentPath(imageUrl);
+                    chatHistory.setAttachmentName(attachmentName);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         chatHistory.setConversationId(conversationId);
         chatHistory.setRole(Constants.USER);
-        chatHistory.setContent(content);
         chatHistory.setCreatedAt(LocalDateTime.now());
         return chatHistory;
     }

@@ -47,6 +47,16 @@ public class ChatHistoryDO {
     private String toolExecResult;
 
     /**
+     * 附件路径（文件URL或MinIO路径）
+     */
+    private String attachmentPath;
+
+    /**
+     * 附件名称
+     */
+    private String attachmentName;
+
+    /**
      * 消息创建时间
      */
     private LocalDateTime createdAt;

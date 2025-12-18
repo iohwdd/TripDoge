@@ -5,7 +5,7 @@ import com.tripdog.model.entity.SkillHistory;
 import com.tripdog.common.utils.MinioUtils;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.SkillHistoryService;
-import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.service.direct.UserSessionService;
 import com.tripdog.common.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;

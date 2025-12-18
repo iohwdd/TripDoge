@@ -13,7 +13,7 @@ import com.tripdog.model.entity.ChatHistoryDO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ChatService;
 import com.tripdog.service.impl.ConversationServiceImpl;
-import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.service.direct.UserSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

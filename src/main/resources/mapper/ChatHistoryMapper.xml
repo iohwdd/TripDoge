@@ -10,12 +10,14 @@
         <result column="enhanced_content" property="enhancedContent" jdbcType="LONGVARCHAR"/>
         <result column="tool_call" property="toolCall" jdbcType="LONGVARCHAR"/>
         <result column="tool_exec_result" property="toolExecResult" jdbcType="LONGVARCHAR"/>
+        <result column="attachment_path" property="attachmentPath" jdbcType="VARCHAR"/>
+        <result column="attachment_name" property="attachmentName" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.tripdog.model.entity.ChatHistoryDO">
-        INSERT INTO t_chat_history ( conversation_id, role, content, enhanced_content, tool_call, tool_exec_result, created_at)
-        VALUES (#{conversationId}, #{role}, #{content}, #{enhancedContent}, #{toolCall}, #{toolExecResult}, NOW())
+        INSERT INTO t_chat_history ( conversation_id, role, content, enhanced_content, tool_call, tool_exec_result, attachment_path, attachment_name, created_at)
+        VALUES (#{conversationId}, #{role}, #{content}, #{enhancedContent}, #{toolCall}, #{toolExecResult}, #{attachmentPath}, #{attachmentName}, NOW())
     </insert>
 
     <delete id="deleteById" parameterType="java.lang.String">
@@ -29,7 +31,9 @@
             content = #{content},
             enhanced_content = #{enhancedContent},
             tool_call = #{toolCall},
-            tool_exec_result = #{toolExecResult}
+            tool_exec_result = #{toolExecResult},
+            attachment_path = #{attachmentPath},
+            attachment_name = #{attachmentName}
         WHERE id = #{id}
     </update>
 

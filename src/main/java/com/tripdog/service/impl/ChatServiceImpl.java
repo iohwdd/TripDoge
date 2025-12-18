@@ -13,17 +13,19 @@ import org.springframework.util.StringUtils;
 
 import com.tripdog.ai.AssistantService;
 import com.tripdog.ai.assistant.ChatAssistant;
+import com.tripdog.common.openapi.OpenApiClient;
+import com.tripdog.common.utils.FileUtil;
 import com.tripdog.common.utils.FileUploadUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
+import com.tripdog.common.utils.RoleConfigParser;
+import com.tripdog.model.dto.ChatReqDTO;
 import com.tripdog.model.dto.FileUploadDTO;
+import com.tripdog.model.dto.OpenApiChatDTO;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
-import com.tripdog.model.dto.ChatReqDTO;
 import com.tripdog.service.ChatService;
 import com.tripdog.service.IntimacyService;
-import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
-import com.tripdog.common.utils.RoleConfigParser;
 import com.tripdog.ai.tts.QwenRealtimeTtsService;
 
 import dev.langchain4j.data.message.ImageContent;
@@ -44,9 +46,9 @@ public class ChatServiceImpl implements ChatService {
     private final ConversationServiceImpl conversationServiceImpl;
     private final RoleMapper roleMapper;
     private final AssistantService assistantService;
-    private final FileUploadUtils fileUploadUtils;
     private final QwenRealtimeTtsService qwenRealtimeTtsService;
     private final IntimacyService intimacyService;
+    private final OpenApiClient openApiClient;
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO chatReqDTO) {
@@ -89,24 +91,25 @@ public class ChatServiceImpl implements ChatService {
             log.info("角色[{}]使用系统提示词: {}", role.getName(), systemPrompt);
 
             StringBuilder responseBuilder = new StringBuilder();
-            // 使用角色专用的聊天助手，传入角色的系统提示词
-            ChatAssistant assistant = assistantService.getAssistant(systemPrompt);
+
+            // 文本模型 or 视觉模型
+            ChatAssistant assistant;
+            if(chatReqDTO.getFile() != null && FileUtil.isImage(chatReqDTO.getFile().getOriginalFilename())) {
+                OpenApiChatDTO dto = new OpenApiChatDTO();
+                dto.setContent(chatReqDTO.getMessage());
+                dto.setFile(chatReqDTO.getFile());
+                dto.setConversationId(conversation.getConversationId());
+                dto.setBrand(OpenApiClient.QWEN);
+                return openApiClient.chat(dto);
+            } else {
+                assistant = assistantService.getAssistant(systemPrompt);
+            }
 
             ttsHolder[0] = Boolean.TRUE.equals(chatReqDTO.getStreamAudio())
                 ? qwenRealtimeTtsService.startOrReplaceSession(ttsKeyHolder[0], delta -> sendAudioDelta(emitter, emitterClosed, delta), chatReqDTO.getVoice()).orElse(null)
                 : null;
 
-            MultipartFile file = chatReqDTO.getFile();
-            TokenStream stream;
-            if(file != null) {
-                // todo 多模态支持
-                FileUploadDTO fileUploadDTO = fileUploadUtils.upload2Minio(chatReqDTO.getFile(), userId, "/tmp");
-                String imageUrl = fileUploadUtils.getUrlFromMinio(fileUploadDTO.getFileUrl());
-                UserMessage message = UserMessage.from(TextContent.from(chatReqDTO.getMessage()), ImageContent.from(URI.create(imageUrl)));
-                stream = assistant.chat(conversation.getConversationId(), message);
-            }else {
-                stream = assistant.chat(conversation.getConversationId(), chatReqDTO.getMessage());
-            }
+            TokenStream stream = assistant.chat(conversation.getConversationId(), chatReqDTO.getMessage());
 
             stream.onPartialResponse((data) -> {
                 if (emitterClosed.get()) {

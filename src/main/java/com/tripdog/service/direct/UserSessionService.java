@@ -1,4 +1,4 @@
-package com.tripdog.service.impl;
+package com.tripdog.service.direct;
 
 import com.tripdog.common.RedisService;
 import com.tripdog.model.vo.UserInfoVO;

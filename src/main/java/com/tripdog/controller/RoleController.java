@@ -10,7 +10,7 @@ import com.tripdog.model.vo.RoleDetailVO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
-import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.service.direct.UserSessionService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

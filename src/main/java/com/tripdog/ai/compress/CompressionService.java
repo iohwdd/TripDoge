@@ -1,9 +1,6 @@
 package com.tripdog.ai.compress;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -89,13 +86,38 @@ public class CompressionService {
     private String buildSummary(List<ChatMessage> older) {
         StringBuilder originContext = new StringBuilder();
         for (ChatMessage m : older) {
-            if (m instanceof UserMessage) {
-                originContext.append("[USER]").append(cut(((UserMessage) m).singleText())).append('\n');
+            if (m instanceof UserMessage userMessage) {
+                // 处理多部分内容：只提取文本部分用于摘要
+                String userText = extractTextFromUserMessage(userMessage);
+                originContext.append("[USER]").append(cut(userText)).append('\n');
             } else if (m instanceof AiMessage) {
                 originContext.append("[ASSISTANT]").append(cut(((AiMessage) m).text())).append('\n');
             }
         }
         return compressAssistant.summary(originContext.toString());
+    }
+
+    /**
+     * 从 UserMessage 中提取文本内容
+     * 处理多部分内容（文本 + 附件）的情况
+     */
+    private String extractTextFromUserMessage(UserMessage userMessage) {
+        List<Content> contents = userMessage.contents();
+        if (contents != null && !contents.isEmpty()) {
+            // 查找第一个文本内容
+            for (Content content : contents) {
+                if (content.type().equals(ContentType.TEXT)) {
+                    return ((TextContent) content).text();
+                }
+            }
+        }
+        // 降级处理：尝试使用 singleText()，仅当只有单个文本内容时成功
+        try {
+            return userMessage.singleText();
+        } catch (IllegalStateException e) {
+            // 多部分内容会抛异常，此时返回空
+            return "";
+        }
     }
 
 

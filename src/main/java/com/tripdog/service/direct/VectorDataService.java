@@ -1,4 +1,4 @@
-package com.tripdog.service.impl;
+package com.tripdog.service.direct;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;

@@ -28,9 +28,9 @@
         <mybatis.version>3.5.17</mybatis.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <minio.version>8.5.7</minio.version>
-        <!-- DashScope SDK：上游 2.21.13 未在中央仓库，回落到可用版本 -->
         <dashscope.sdk.version>2.17.0</dashscope.sdk.version>
-        <langgraph4j.version>1.7.5</langgraph4j.version> <!-- 使用已发布版本 -->
+        <langgraph4j.version>1.7.5</langgraph4j.version>
+        <openapi.version>4.6.1</openapi.version>
     </properties>
 
     <dependencyManagement>
@@ -146,6 +146,12 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-zhipu-ai</artifactId>
             <version>${langchain4j.beta.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.openai</groupId>
+            <artifactId>openai-java</artifactId>
+            <version>${openapi.version}</version>
         </dependency>
 
         <!-- MySQL Connector -->

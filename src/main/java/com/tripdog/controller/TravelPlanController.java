@@ -7,7 +7,7 @@ import com.tripdog.model.dto.TravelPlanRequest;
 import com.tripdog.model.dto.TravelPlanResponse;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.TravelPlanService;
-import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.service.direct.UserSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;

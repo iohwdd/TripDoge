@@ -3,6 +3,8 @@ package com.tripdog.ai;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import dev.langchain4j.data.message.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -15,12 +17,6 @@ import com.tripdog.common.utils.JsonUtil;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.model.entity.ChatHistoryDO;
 import com.tripdog.model.builder.ConversationBuilder;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.CustomMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -60,13 +56,22 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
 
             switch (d.getRole()) {
                 case USER:
-                    chatMessages.add(UserMessage.from(content));
+                    // 重建用户消息，需要判断是否有附件
+                    if (StringUtils.hasText(d.getAttachmentPath())) {
+                        // 构建包含文本和附件的多部分消息（参照图片附件持久化方式）
+                        List<Content> contents = new ArrayList<>();
+                        if (StringUtils.hasText(content)) {
+                            contents.add(TextContent.from(content));
+                        }
+                        // 统一使用 ImageContent 包装附件（文件、图片等都用这个）
+                        contents.add(ImageContent.from(d.getAttachmentPath()));
+                        chatMessages.add(UserMessage.from(contents));
+                    } else {
+                        chatMessages.add(UserMessage.from(content));
+                    }
                     break;
                 case ASSISTANT:
                     if(StringUtils.hasText(d.getToolExecResult())) {
-                        // String json = d.getToolCall();
-                        // ToolExecutionRequest toolCall = JsonUtil.fromJson(json, ToolExecutionRequest.class);
-                        // ToolExecutionResultMessage.toolExecutionResultMessage(toolCall,d.getToolExecResult());
                         chatMessages.add(ToolExecutionResultMessage.from("id","toolName",d.getToolExecResult()));
                     } else {
                         if(StringUtils.hasText(d.getToolCall())) {
@@ -96,13 +101,12 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         ChatMessage latestMessage = list.getLast();
         String role = getRoleFromMessage(latestMessage);
 
-
         String message = getContentMessage(latestMessage);
 
         boolean isToolCall = false;
         ChatHistoryDO chatHistoryDO;
         if (Constants.USER.equals(role)) {
-            chatHistoryDO = ConversationBuilder.buildUserMessage(conversationId, message);
+            chatHistoryDO = ConversationBuilder.buildUserMessage(conversationId, (UserMessage) latestMessage);
         } else if (Constants.ASSISTANT.equals(role)) {
             AiMessage aiMessage = (AiMessage) latestMessage;
             if(aiMessage.hasToolExecutionRequests()) {
@@ -156,8 +160,27 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
     private String getContentMessage(ChatMessage message) {
         if (message instanceof SystemMessage) {
             return ((SystemMessage) message).text();
-        } else if (message instanceof UserMessage) {
-            return ((UserMessage) message).singleText();
+        } else if (message instanceof UserMessage userMessage) {
+            // 处理多部分内容：只提取文本部分，忽略图片等其他内容
+            List<Content> contents = userMessage.contents();
+            if (contents != null && !contents.isEmpty()) {
+                // 查找第一个文本内容
+                for (Content content : contents) {
+                    if (content.type().equals(ContentType.TEXT)) {
+                        // 正确提取 TextContent 的文本内容，而不是 toString()
+                        return ((TextContent) content).text();
+                    }
+                }
+                // 如果没有找到文本内容，返回空（多部分消息的附件不应作为文本内容）
+                return null;
+            }
+            // 降级处理：尝试使用 singleText()，仅当只有单个文本内容时成功
+            try {
+                return userMessage.singleText();
+            } catch (IllegalStateException e) {
+                // 多部分内容会抛异常，此时返回 null
+                return null;
+            }
         } else if (message instanceof AiMessage) {
             AiMessage aiMessage = (AiMessage) message;
             // 如果AI消息包含工具调用请求，需要序列化保存

@@ -39,7 +39,7 @@ public class AssistantService {
     final McpClientFactory mcpClientFactory;
 
     public ChatAssistant getAssistant(String systemPrompt) {
-        StreamingChatModel chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.ZhipuAiStreamingChat);
+        StreamingChatModel chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.QwenStreamingChat);
         String effectiveSystemPrompt = StringUtils.hasText(systemPrompt)
             ? systemPrompt
             : "你是一个友好的AI助手，乐于帮助用户解决问题。请用友好、专业的语调回答用户的问题。";

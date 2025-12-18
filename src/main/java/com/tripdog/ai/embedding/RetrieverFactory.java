@@ -3,7 +3,6 @@ package com.tripdog.ai.embedding;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.tripdog.service.impl.UserSessionService;
 import org.springframework.context.annotation.Configuration;
 
 import com.tripdog.common.utils.ThreadLocalUtils;

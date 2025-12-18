@@ -27,8 +27,8 @@ import com.tripdog.common.utils.FileUploadUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.config.MinioConfig;
 import com.tripdog.model.dto.DocDelDTO;
-import com.tripdog.service.impl.UserSessionService;
-import com.tripdog.service.impl.VectorDataService;
+import com.tripdog.service.direct.UserSessionService;
+import com.tripdog.service.direct.VectorDataService;
 import com.tripdog.model.dto.DocDownloadDTO;
 import com.tripdog.model.dto.DocListDTO;
 import com.tripdog.model.dto.FileUploadDTO;
@@ -51,7 +51,6 @@ import static com.tripdog.common.Constants.FILE_ID;
 import static com.tripdog.common.Constants.FILE_NAME;
 import static com.tripdog.common.Constants.ROLE_ID;
 import static com.tripdog.common.Constants.UPLOAD_TIME;
-import static com.tripdog.common.Constants.USER_ID;
 import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument;
 
 /**

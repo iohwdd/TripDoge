@@ -5,7 +5,7 @@ import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.model.vo.UserInfoVO;
-import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.service.direct.UserSessionService;
 import com.tripdog.common.utils.TokenUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
