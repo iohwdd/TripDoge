@@ -3,9 +3,13 @@ package com.tripdog.service.impl;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -34,6 +38,8 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import static com.tripdog.common.Constants.CONVERSATION_ID;
 import static com.tripdog.common.Constants.ROLE_ID;
 
 /**
@@ -43,12 +49,28 @@ import static com.tripdog.common.Constants.ROLE_ID;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatServiceImpl implements ChatService {
+    private final String THREAD_POOL_NAME = "chat-pool";
+    private final AtomicInteger threadCounter = new AtomicInteger(0);
     private final ConversationServiceImpl conversationServiceImpl;
     private final RoleMapper roleMapper;
     private final AssistantService assistantService;
     private final QwenRealtimeTtsService qwenRealtimeTtsService;
     private final IntimacyService intimacyService;
     private final OpenApiClient openApiClient;
+
+    private ThreadPoolExecutor chatExecutor;
+
+    @PostConstruct
+    public void init() {
+        chatExecutor = new ThreadPoolExecutor(
+                5,
+                10,
+                30, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(30),
+                (r) -> new Thread(r, THREAD_POOL_NAME + "-" + threadCounter.addAndGet(1)),
+                new ThreadPoolExecutor.DiscardOldestPolicy()
+        );
+    }
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO chatReqDTO) {
@@ -62,6 +84,7 @@ public class ChatServiceImpl implements ChatService {
         try {
             // 1. 获取或创建会话
             ConversationDO conversation = conversationServiceImpl.getOrCreateConversation(userId, roleId);
+            ThreadLocalUtils.set(CONVERSATION_ID, conversation.getConversationId());
             ttsKeyHolder[0] = "chat:" + conversation.getConversationId();
             // 新一轮对话时，若上次 TTS 还在播，先终止再开始
             qwenRealtimeTtsService.stopSession(ttsKeyHolder[0]);
@@ -103,7 +126,7 @@ public class ChatServiceImpl implements ChatService {
                 dto.setBrand(OpenApiClient.QWEN);
                 return openApiClient.chat(dto);
             } else {
-                assistant = assistantService.getAssistant(systemPrompt);
+                assistant = assistantService.getAssistant();
             }
 
             ttsHolder[0] = Boolean.TRUE.equals(chatReqDTO.getStreamAudio())

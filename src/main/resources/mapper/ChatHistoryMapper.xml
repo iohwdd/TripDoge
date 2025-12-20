@@ -58,7 +58,12 @@
         select * from t_chat_history
         where conversation_id = #{conversationId}
     </select>
-
+    <select id="selectLatestLimitById" resultType="com.tripdog.model.entity.ChatHistoryDO">
+        select * from t_chat_history
+        where conversation_id = #{conversationId}
+        order by created_at desc
+        limit #{limit}
+    </select>
     <delete id="deleteByConversationId" parameterType="java.lang.String">
         DELETE FROM t_chat_history WHERE conversation_id = #{conversationId}
     </delete>

@@ -35,6 +35,8 @@ public interface ChatHistoryMapper {
 
     List<ChatHistoryDO> selectAllById(@Param("conversationId") String conversationId);
 
+    List<ChatHistoryDO> selectLatestLimitById(@Param("conversationId") String conversationId, @Param("limit")  int limit);
+
     /**
      * 动态条件查询聊天记录
      */

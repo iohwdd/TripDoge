@@ -38,11 +38,8 @@ public class AssistantService {
     final CustomerChatMemoryProvider chatMemoryProvider;
     final McpClientFactory mcpClientFactory;
 
-    public ChatAssistant getAssistant(String systemPrompt) {
+    public ChatAssistant getAssistant() {
         StreamingChatModel chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.QwenStreamingChat);
-        String effectiveSystemPrompt = StringUtils.hasText(systemPrompt)
-            ? systemPrompt
-            : "你是一个友好的AI助手，乐于帮助用户解决问题。请用友好、专业的语调回答用户的问题。";
 
         EmbeddingStoreContentRetriever embeddingStoreContentRetriever = retrieverFactory.getRetriever();
 
@@ -61,7 +58,6 @@ public class AssistantService {
 
         return AiServices.builder(ChatAssistant.class)
             .streamingChatModel(chatLanguageModel)
-            .systemMessageProvider(ctx -> effectiveSystemPrompt)
             .retrievalAugmentor(retrievalAugmentor)
             .chatMemoryProvider(chatMemoryProvider)
             .tools(new MyTools())

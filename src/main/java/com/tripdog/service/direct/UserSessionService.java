@@ -1,6 +1,6 @@
 package com.tripdog.service.direct;
 
-import com.tripdog.common.RedisService;
+import com.tripdog.common.middleware.RedisClient;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.common.utils.TokenUtils;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class UserSessionService {
 
-    private final RedisService redisService;
+    private final RedisClient redisClient;
 
     /**
      * Session超时时间（30分钟）
@@ -49,17 +49,17 @@ public class UserSessionService {
 
         try {
             // 如果用户已经有token，先删除旧的session
-            String existingToken = redisService.getString(userTokenKey);
+            Object existingToken = redisClient.get(userTokenKey);
             if (existingToken != null) {
-                redisService.delete(SESSION_KEY_PREFIX + existingToken);
+                redisClient.delete(SESSION_KEY_PREFIX + existingToken.toString());
                 log.debug("删除用户 {} 的旧session", userInfo.getId());
             }
 
             // 保存用户信息到Redis，设置过期时间
-            redisService.setObject(sessionKey, userInfo, SESSION_TIMEOUT, TimeUnit.MINUTES);
+            redisClient.set(sessionKey, userInfo, SESSION_TIMEOUT, TimeUnit.MINUTES);
 
             // 保存用户ID到token的映射，便于管理
-            redisService.setString(userTokenKey, token, SESSION_TIMEOUT, TimeUnit.MINUTES);
+            redisClient.set(userTokenKey, token, SESSION_TIMEOUT, TimeUnit.MINUTES);
 
             log.debug("为用户 {} 创建session成功", userInfo.getId());
             return token;
@@ -84,7 +84,7 @@ public class UserSessionService {
         String sessionKey = SESSION_KEY_PREFIX + token;
 
         try {
-            UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
+            UserInfoVO userInfo = redisClient.get(sessionKey, UserInfoVO.class);
             if (userInfo != null) {
                 // Session续期
                 renewSession(token);
@@ -112,16 +112,16 @@ public class UserSessionService {
 
         try {
             // 检查session是否存在
-            if (redisService.hasKey(sessionKey)) {
+            if (redisClient.hasKey(sessionKey)) {
                 // 获取用户信息
-                UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
+                UserInfoVO userInfo = redisClient.get(sessionKey, UserInfoVO.class);
                 if (userInfo != null) {
                     // 重新设置过期时间
-                    redisService.expire(sessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
+                    redisClient.expire(sessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
 
                     // 同时续期用户token映射
                     String userTokenKey = USER_TOKEN_PREFIX + userInfo.getId();
-                    redisService.expire(userTokenKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
+                    redisClient.expire(userTokenKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
 
                     log.debug("用户session续期成功，用户ID: {}", userInfo.getId());
                 }
@@ -145,15 +145,15 @@ public class UserSessionService {
 
         try {
             // 先获取用户信息
-            UserInfoVO userInfo = redisService.getObject(sessionKey, UserInfoVO.class);
+            UserInfoVO userInfo = redisClient.get(sessionKey, UserInfoVO.class);
 
             // 删除session
-            redisService.delete(sessionKey);
+            redisClient.delete(sessionKey);
 
             // 删除用户token映射
             if (userInfo != null) {
                 String userTokenKey = USER_TOKEN_PREFIX + userInfo.getId();
-                redisService.delete(userTokenKey);
+                redisClient.delete(userTokenKey);
                 log.info("删除用户session成功，用户ID: {}", userInfo.getId());
             }
 
@@ -176,14 +176,14 @@ public class UserSessionService {
 
         try {
             // 获取用户当前的token
-            String token = redisService.getString(userTokenKey);
+            Object token = redisClient.get(userTokenKey);
             if (token != null) {
-                String sessionKey = SESSION_KEY_PREFIX + token;
-                redisService.delete(sessionKey);
+                String sessionKey = SESSION_KEY_PREFIX + token.toString();
+                redisClient.delete(sessionKey);
             }
 
             // 删除用户token映射
-            redisService.delete(userTokenKey);
+            redisClient.delete(userTokenKey);
 
             log.info("删除用户所有session成功，用户ID: {}", userId);
 
@@ -204,7 +204,7 @@ public class UserSessionService {
         }
 
         String sessionKey = SESSION_KEY_PREFIX + token;
-        return redisService.hasKey(sessionKey);
+        return redisClient.hasKey(sessionKey);
     }
 
     /**
@@ -219,7 +219,8 @@ public class UserSessionService {
         }
 
         String sessionKey = SESSION_KEY_PREFIX + token;
-        return redisService.getExpire(sessionKey, TimeUnit.SECONDS);
+        Long expireTime = redisClient.getExpire(sessionKey);
+        return expireTime != null ? expireTime : -1;
     }
 
     /**

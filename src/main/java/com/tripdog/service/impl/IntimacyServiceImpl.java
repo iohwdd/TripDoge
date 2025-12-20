@@ -8,7 +8,8 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 
-import com.tripdog.common.RedisService;
+import com.tripdog.common.Constants;
+import com.tripdog.common.middleware.RedisClient;
 import com.tripdog.mapper.IntimacyMapper;
 import com.tripdog.mapper.IntimacyRecordMapper;
 import com.tripdog.model.entity.IntimacyDO;
@@ -27,19 +28,17 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class IntimacyServiceImpl implements IntimacyService {
-
-    private static final String PREFIX = "tripdoge:intimacy:";
     private static final int INTIMACY_MAX = 100;
     private static final int INTIMACY_MIN = 0;
     private static final int DAILY_FIRST_BONUS = 5;
     private static final int TEN_ROUND_BONUS = 10;
-    private static final int DAILY_TEN_ROUND_LIMIT = 5; // 每日“每10轮”触发上限（+50）
+    private static final int DAILY_TEN_ROUND_LIMIT = 5; // 每日"每10轮"触发上限（+50）
     private static final int INACTIVITY_PENALTY = 10;
     private static final int INACTIVITY_DAYS_THRESHOLD = 3;
 
     private final IntimacyMapper intimacyMapper;
     private final IntimacyRecordMapper intimacyRecordMapper;
-    private final RedisService redisService;
+    private final RedisClient redisClient;
 
     @Override
     public IntimacyDO getCurrent(Long uid, Long roleId) {
@@ -89,7 +88,7 @@ public class IntimacyServiceImpl implements IntimacyService {
         cacheToRedis(current);
 
         // 记录最后一次用户发言时间
-        redisService.setString(keyLastMsg(uid, roleId), String.valueOf(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
+        redisClient.set(keyLastMsg(uid, roleId), String.valueOf(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
         IntimacyChange change = new IntimacyChange();
         change.setIntimacy(current);
         change.setDelta(deltaSum);
@@ -122,27 +121,27 @@ public class IntimacyServiceImpl implements IntimacyService {
 
     private boolean tryDailyBonus(Long uid, Long roleId, LocalDate today) {
         String key = keyDailyFlag(uid, roleId);
-        Boolean exists = redisService.hasKey(key);
+        Boolean exists = redisClient.hasKey(key);
         if (Boolean.TRUE.equals(exists)) {
             return false;
         }
         // 未存在，则设置标记并加分
-        redisService.setString(key, "1", ttlToNextMidnightPlusBufferMinutes(60), java.util.concurrent.TimeUnit.MINUTES);
+        redisClient.set(key, "1", ttlToNextMidnightPlusBufferMinutes(60), java.util.concurrent.TimeUnit.MINUTES);
         return true;
     }
 
     private boolean tryTenRoundBonus(Long uid, Long roleId, LocalDate today) {
-        Long cntVal = redisService.increment(keyRoundCount(uid, roleId), 1);
+        Long cntVal = redisClient.incrBy(keyRoundCount(uid, roleId), 1);
         long cnt = cntVal == null ? 0L : cntVal;
         if (cnt % 10 != 0) {
             return false;
         }
         String dayKey = keyDailyTenRound(uid, roleId, today);
-        String current = redisService.getString(dayKey);
+        Object current = redisClient.get(dayKey);
         int used = 0;
         if (current != null) {
             try {
-                used = Integer.parseInt(current);
+                used = Integer.parseInt(current.toString());
             } catch (NumberFormatException ignored) {
             }
         }
@@ -150,7 +149,7 @@ public class IntimacyServiceImpl implements IntimacyService {
             return false;
         }
         // 增加一次计数并设置过期
-        redisService.setString(dayKey, String.valueOf(used + 1), ttlToNextMidnightPlusBufferMinutes(60), java.util.concurrent.TimeUnit.MINUTES);
+        redisClient.set(dayKey, String.valueOf(used + 1), ttlToNextMidnightPlusBufferMinutes(60), java.util.concurrent.TimeUnit.MINUTES);
         return true;
     }
 
@@ -194,7 +193,7 @@ public class IntimacyServiceImpl implements IntimacyService {
 
     private IntimacyDO getFromCache(Long uid, Long roleId) {
         String key = keyIntimacy(uid, roleId);
-        Object val = redisService.get(key);
+        Object val = redisClient.get(key);
         if (val instanceof Integer) {
             IntimacyDO data = new IntimacyDO();
             data.setUid(uid);
@@ -217,7 +216,7 @@ public class IntimacyServiceImpl implements IntimacyService {
         if (data == null || data.getUid() == null || data.getRoleId() == null || data.getIntimacy() == null) {
             return;
         }
-        redisService.set(keyIntimacy(data.getUid(), data.getRoleId()), data.getIntimacy());
+        redisClient.set(keyIntimacy(data.getUid(), data.getRoleId()), data.getIntimacy());
     }
 
     private int clamp(int val) {
@@ -238,23 +237,24 @@ public class IntimacyServiceImpl implements IntimacyService {
 
     // === key helpers ===
     private String keyIntimacy(Long uid, Long roleId) {
-        return PREFIX + uid + ":" + roleId;
+        return Constants.REDIS_INTIMACY + uid + ":" + roleId;
     }
 
     private String keyDailyFlag(Long uid, Long roleId) {
-        return PREFIX + "daily:flag:" + uid + ":" + roleId;
+        return Constants.REDIS_INTIMACY + "daily:flag:" + uid + ":" + roleId;
     }
 
     private String keyRoundCount(Long uid, Long roleId) {
-        return PREFIX + "cnt:" + uid + ":" + roleId;
+        return Constants.REDIS_INTIMACY + "cnt:" + uid + ":" + roleId;
     }
 
     private String keyDailyTenRound(Long uid, Long roleId, LocalDate date) {
-        return PREFIX + "daily10:cnt:" + uid + ":" + roleId + ":" + date.toString().replace("-", "");
+        return Constants.REDIS_INTIMACY + "daily10:cnt:" + uid + ":" + roleId + ":" + date.toString().replace("-", "");
     }
 
     private String keyLastMsg(Long uid, Long roleId) {
-        return PREFIX + "lastmsg:" + uid + ":" + roleId;
+        return Constants.REDIS_INTIMACY + "lastmsg:" + uid + ":" + roleId;
     }
 }
+
 

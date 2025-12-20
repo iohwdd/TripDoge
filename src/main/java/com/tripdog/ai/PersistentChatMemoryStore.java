@@ -3,15 +3,30 @@ package com.tripdog.ai;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.tripdog.ai.assistant.CompressAssistant;
+import com.tripdog.common.middleware.RedisClient;
+import com.tripdog.common.utils.RoleConfigParser;
+import com.tripdog.mapper.ConversationMapper;
+import com.tripdog.mapper.RoleMapper;
+import com.tripdog.model.entity.ConversationDO;
+import com.tripdog.model.entity.RoleDO;
+import com.tripdog.service.direct.VectorDataService;
+import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.message.*;
+import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import jakarta.annotation.PostConstruct;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import com.alibaba.dashscope.tokenizers.Tokenizer;
 import com.alibaba.dashscope.tokenizers.TokenizerFactory;
 import com.google.common.reflect.TypeToken;
-import com.tripdog.ai.compress.CompressionService;
 import com.tripdog.common.Constants;
 import com.tripdog.common.utils.JsonUtil;
 import com.tripdog.mapper.ChatHistoryMapper;
@@ -23,7 +38,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import static com.tripdog.common.Constants.INJECT_TEMPLATE;
+
+import static com.tripdog.common.Constants.*;
 
 /**
  * @author: iohw
@@ -34,20 +50,31 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 @RequiredArgsConstructor
 @Slf4j
 public class PersistentChatMemoryStore implements ChatMemoryStore {
-    final ChatHistoryMapper chatHistoryMapper;
+    private final ChatHistoryMapper chatHistoryMapper;
+    private final ConversationMapper conversationMapper;
+    private final RoleMapper roleMapper;
+    private final RedisClient redisClient;
+    private final VectorDataService vectorDataService;
+    private final Map<String, String> systemMessageCache = new HashMap<>();
     private final Tokenizer tokenizer = TokenizerFactory.qwen();
     private final String USER = "user";
     private final String ASSISTANT = "assistant";
     private final String SYSTEM = "system";
     private final String TOOL = "tool";
-    private final CompressionService compressionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final CompressAssistant compressAssistant;
+    private final EmbeddingStoreIngestor ingestor;
+    private final int windowMaxSize = 20;
+    private final int summaryThreshold = 5;
+
 
     @Override
     public List<ChatMessage> getMessages(Object o) {
         String conversationId = (String) o;
-        List<ChatHistoryDO> chatHistoryDOS = chatHistoryMapper.selectAllById(conversationId);
+        List<ChatHistoryDO> chatHistoryDOS = chatHistoryMapper.selectLatestLimitById(conversationId, windowMaxSize * 3).reversed();
         List<ChatMessage> chatMessages = new ArrayList<>();
+        String systemMessage = getRoleSystemMessage(conversationId);
+        chatMessages.add(SystemMessage.from(systemMessage));
 
 
         for (ChatHistoryDO d : chatHistoryDOS) {
@@ -89,10 +116,7 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
                     break;
             }
         }
-
-
-        // 压缩处理
-        return compressionService.compress(chatMessages);
+        return chatMessages;
     }
 
     @Override
@@ -100,7 +124,6 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         String conversationId = o.toString();
         ChatMessage latestMessage = list.getLast();
         String role = getRoleFromMessage(latestMessage);
-
         String message = getContentMessage(latestMessage);
 
         boolean isToolCall = false;
@@ -132,6 +155,11 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
             }
         }
         chatHistoryMapper.insert(chatHistoryDO);
+
+        // 滚动摘要触发计数器
+        if(ChatMessageType.AI.equals(latestMessage.type()) && list.size() >= windowMaxSize) {
+            compressContext(conversationId, list);
+        }
     }
 
     @Override
@@ -141,6 +169,52 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         // chatHistoryMapper.deleteByConversationId(conversationId);
     }
 
+    @Async
+    protected void compressContext(String conversationId, List<ChatMessage> list) {
+        String key = Constants.REDIS_SUMMARY + conversationId;
+        Integer count = (Integer) redisClient.get(key);
+        if (count == null) {
+            // 首次初始化计数器
+            count = 0;
+            redisClient.set(key, 0);
+        }
+        if(count >= summaryThreshold) {
+            // 生成摘要，向量化
+            int endIndex = Math.min(summaryThreshold * 2 + 1, list.size());
+            List<ChatMessage> earlyMessageList = list.subList(1, endIndex);
+
+            StringBuilder sb = new StringBuilder();
+            earlyMessageList.forEach(m -> {
+                sb.append(JsonUtil.toJson(m));
+            });
+            // 删除会话旧的摘要
+            vectorDataService.deleteByMetadata(new IsEqualTo(CONVERSATION_ID, conversationId).and(
+                    new IsEqualTo(SUMMARY_TAG, "true")
+            ));
+            String summary = compressAssistant.summary(sb.toString());
+            Document doc = Document.from(summary);
+            Metadata metadata = doc.metadata();
+            metadata.put(CONVERSATION_ID, conversationId);
+            metadata.put(SUMMARY_TAG, "true");
+            ingestor.ingest(doc);
+            // 重置计数器
+            redisClient.set(key, 0);
+            log.info("convId: {}, compress success, summary result: {}", conversationId, summary);
+        } else {
+            redisClient.set(key, count + 1);
+        }
+    }
+
+    private String getRoleSystemMessage(String conversationId) {
+        if (systemMessageCache.containsKey(conversationId)) {
+            return systemMessageCache.get(conversationId);
+        }
+        ConversationDO conversationDO = conversationMapper.selectByConversationId(conversationId);
+        RoleDO role = roleMapper.selectById(conversationDO.getRoleId());
+        String systemPrompt = RoleConfigParser.extractSystemPrompt(role.getAiSetting());
+        systemMessageCache.put(conversationId, systemPrompt);
+        return systemPrompt;
+    }
 
     private String getRoleFromMessage(ChatMessage message) {
         if (message instanceof SystemMessage) {

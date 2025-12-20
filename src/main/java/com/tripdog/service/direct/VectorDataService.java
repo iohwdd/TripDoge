@@ -94,16 +94,13 @@ public class VectorDataService {
     /**
      * 根据自定义元数据字段删除向量数据
      *
-     * @param metadataKey 元数据键
-     * @param metadataValue 元数据值
      */
-    public void deleteByMetadata(String metadataKey, Object metadataValue) {
+    public void deleteByMetadata(Filter filter) {
         try {
-            Filter customFilter = new IsEqualTo(metadataKey, metadataValue);
-            embeddingStore.removeAll(customFilter);
-            log.info("删除元数据 {}={} 的向量数据", metadataKey, metadataValue);
+            embeddingStore.removeAll(filter);
+            log.info("删除元数据 {} 的向量数据", filter.toString());
         } catch (Exception e) {
-            log.error("删除元数据 {}={} 的向量数据失败", metadataKey, metadataValue, e);
+            log.info("删除元数据 {} 的向量数据失败", filter.toString());
             throw new RuntimeException("删除向量数据失败", e);
         }
     }

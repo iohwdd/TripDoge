@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CustomerChatMemoryProvider implements ChatMemoryProvider {
     private final ChatMemoryStore memoryStore;
-    private final Integer MAX_MESSAGES = 20;
+    private final Integer MAX_MESSAGES = 25;
     private final Map<String, ChatMemory> map = new HashMap<>();
 
     @Override

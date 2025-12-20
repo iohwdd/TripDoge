@@ -33,7 +33,7 @@ public class CompressionService {
     public List<ChatMessage> compress(List<ChatMessage> original) {
         if (!config.isEnabled()) return original;
         if (original == null || original.size() < config.getMinMessagesToCompress()) return original;
-        // 粗略token估算：按字符长度 / 1.8（Mock）
+        // 粗略token估算
         int estimatedTokens = original.stream()
             .mapToInt((item) -> {
                 String text = "";
@@ -53,20 +53,13 @@ public class CompressionService {
             .sum();
         if (estimatedTokens <= config.getMaxTotalTokens()) return original;
 
-        // 拆分：保留最近N条
+        // 拆分：保留最近N条，确保不以AiMessage开头
         int recentCount = Math.min(config.getRecentRawCount(), original.size());
         int startIdx = original.size() - recentCount;
-        ChatMessage c = original.get(startIdx);
-        if(c instanceof AiMessage) {
-            startIdx --;
-        }
 
         SystemMessage systemMessage = (SystemMessage) original.getFirst();
         List<ChatMessage> recent = new ArrayList<>(original.subList(startIdx, original.size()));
-
-        // 老消息范围（不包含最近的）
-        List<ChatMessage> older = new ArrayList<>(original.subList(1, original.size() - recentCount));
-
+        List<ChatMessage> older = new ArrayList<>(original.subList(1, startIdx));;
 
         // 摘要生成 todo 分类抓取一些代表内容
         String summary = buildSummary(older);
@@ -79,7 +72,7 @@ public class CompressionService {
         result.add(systemMessage);
         result.addAll(recent);
 
-        log.debug("Compression applied: original={}, returned={}, summaryTokens={}", original.size(), result.size(), tokenizer.encodeOrdinary(summary).size());
+        log.info("Compression applied: original={}, returned={}, summaryTokens={}", original.size(), result.size(), tokenizer.encodeOrdinary(summary).size());
         return result;
     }
 

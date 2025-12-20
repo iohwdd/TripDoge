@@ -37,7 +37,7 @@ public class TestController {
         ThreadLocalUtils.set(USER_ID, 1L);
         ThreadLocalUtils.set(ROLE_ID, 1L);
 
-        ChatAssistant assistant = assistantService.getAssistant("");
+        ChatAssistant assistant = assistantService.getAssistant();
         TokenStream stream = assistant.chat("1", "你是什么模型");
 
         stream.onPartialResponse((partialResponse) -> {

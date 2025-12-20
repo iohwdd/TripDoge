@@ -11,6 +11,8 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.RequiredArgsConstructor;
+
+import static com.tripdog.common.Constants.*;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
@@ -21,8 +23,6 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 @Configuration
 @RequiredArgsConstructor
 public class RetrieverFactory {
-    final String ROLE_ID = "roleId";
-    final String USER_ID = "userId";
     final EmbeddingStore<TextSegment> embeddingStore;
     final EmbeddingModel embeddingModel;
     final Map<String, EmbeddingStoreContentRetriever> cache = new HashMap<>();
@@ -30,6 +30,7 @@ public class RetrieverFactory {
     public EmbeddingStoreContentRetriever getRetriever() {
         Long userId = (Long) ThreadLocalUtils.get(USER_ID);
         Long roleId = (Long) ThreadLocalUtils.get(ROLE_ID);
+        String conversationId = (String) ThreadLocalUtils.get(CONVERSATION_ID);
 
         if (userId == null || roleId == null) {
             throw new IllegalStateException("ThreadLocal USER_ID/ROLE_ID not set before building retriever");
@@ -46,7 +47,11 @@ public class RetrieverFactory {
             .maxResults(10) //todo 配置抽离
             .minScore(0.8)
             .filter(metadataKey(ROLE_ID).isEqualTo(roleId)
-                .and(metadataKey(USER_ID).isEqualTo(userId)))
+                .and(metadataKey(USER_ID).isEqualTo(userId))
+                    .or(metadataKey(CONVERSATION_ID).isEqualTo(conversationId)
+                            .and(metadataKey(SUMMARY_TAG).isEqualTo("true"))
+                    )
+            )
             .build();
         cache.put(k, retriever);
         return retriever;

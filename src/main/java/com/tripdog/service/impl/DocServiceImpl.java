@@ -22,6 +22,7 @@ import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 import static com.tripdog.common.Constants.*;
 import static com.tripdog.common.Constants.UPLOAD_TIME;
 import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument;
+import static io.prometheus.metrics.model.snapshots.Exemplar.TRACE_ID;
 
 /**
  * 文档服务实现类
@@ -73,6 +75,7 @@ public class DocServiceImpl implements DocService {
 
     @Override
     public SseEmitter docParse(UploadDTO uploadDTO) {
+        long start = System.currentTimeMillis();
         SseEmitter emitter = new SseEmitter(0L);
         // 验证参数
         if (uploadDTO == null || uploadDTO.getFile() == null) {
@@ -91,16 +94,20 @@ public class DocServiceImpl implements DocService {
             return emitter;
         }
 
+        MultipartFile file = uploadDTO.getFile();
         DocParseDTO docParseDTO = DocParseDTO.builder()
-                .file(uploadDTO.getFile())
+                .file(file)
                 .userId(userInfoVO.getId())
                 .roleId(uploadDTO.getRoleId())
                 .build();
         try {
             // 异步解析文档
+            String traceId = MDC.get(TRACE_ID);
             docParseExecutor.execute(() -> {
                 try {
+                    MDC.put(TRACE_ID, traceId);
                     parseDocumentAsync(emitter, docParseDTO);
+                    log.info("fileName: {}, fileSize: {}, doc parse time cost: {}s", file.getOriginalFilename(), FileUtil.formatFileSize(file.getSize()), (System.currentTimeMillis() - start) / 1000);
                 } catch (IOException e) {
                     emitter.completeWithError(e);
                     throw new DocumentParseException(e);
@@ -244,30 +251,13 @@ public class DocServiceImpl implements DocService {
         vo.setFileUrl(doc.getFileUrl());
         vo.setFileName(doc.getFileName());
         vo.setFileSize(doc.getFileSize());
-        vo.setFileSizeFormatted(formatFileSize(doc.getFileSize()));
+        vo.setFileSizeFormatted(FileUtil.formatFileSize(doc.getFileSize()));
         vo.setStatus(doc.getStatus());
         vo.setCreateTime(doc.getCreateTime());
         vo.setUpdateTime(doc.getUpdateTime());
         return vo;
     }
 
-    /**
-     * 格式化文件大小
-     */
-    private String formatFileSize(Long sizeInBytes) {
-        if (sizeInBytes == null || sizeInBytes <= 0) {
-            return "0 B";
-        }
 
-        final String[] units = {"B", "KB", "MB", "GB", "TB"};
-        int digitGroups = (int) (Math.log10(sizeInBytes) / Math.log10(1024));
-
-        if (digitGroups >= units.length) {
-            digitGroups = units.length - 1;
-        }
-
-        DecimalFormat df = new DecimalFormat("#,##0.#");
-        return df.format(sizeInBytes / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
-    }
 
 }

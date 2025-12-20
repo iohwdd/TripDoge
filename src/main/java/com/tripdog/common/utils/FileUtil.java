@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 
 @Slf4j
 public class FileUtil {
@@ -59,4 +60,19 @@ public class FileUtil {
                 fileName.toLowerCase().endsWith(".word");
     }
 
+    public static String formatFileSize(Long sizeInBytes) {
+        if (sizeInBytes == null || sizeInBytes <= 0) {
+            return "0 B";
+        }
+
+        final String[] units = {"B", "KB", "MB", "GB", "TB"};
+        int digitGroups = (int) (Math.log10(sizeInBytes) / Math.log10(1024));
+
+        if (digitGroups >= units.length) {
+            digitGroups = units.length - 1;
+        }
+
+        DecimalFormat df = new DecimalFormat("#,##0.#");
+        return df.format(sizeInBytes / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    }
 }

@@ -18,7 +18,7 @@ import jakarta.servlet.ServletResponse;
  * @description:
  */
 public class ReqFilter implements Filter {
-    private final String TRACE_ID = "traceId";
+    public static final String TRACE_ID = "trace_id";
     @Override
     public void doFilter(ServletRequest req, ServletResponse rsp, FilterChain filterChain)
     throws IOException, ServletException {

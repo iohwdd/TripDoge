@@ -2,6 +2,7 @@ package com.tripdog.service.impl;
 
 import com.tripdog.ai.CustomerChatMemoryProvider;
 import com.tripdog.common.Constants;
+import com.tripdog.common.middleware.RedisClient;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
@@ -34,7 +35,7 @@ public class ConversationServiceImpl implements ConversationService {
     private final RoleMapper roleMapper;
     private final RoleService roleService;
     private final CustomerChatMemoryProvider chatMemoryProvider;
-
+    private final RedisClient redisClient;
 
     /**
      * 获取或创建用户与角色的会话
@@ -81,11 +82,9 @@ public class ConversationServiceImpl implements ConversationService {
         conversationMapper.insert(conversation);
         chatMemoryProvider.createMemory(conversation.getConversationId());
 
-        // 设置系统提示词 todo 解耦
-        String systemPrompt = roleService.getSystemPrompt(roleId);
-        ChatHistoryDO chatHistory = ConversationBuilder.buildSystemMessage(conversation.getConversationId(), systemPrompt);
-        chatHistoryMapper.insert(chatHistory);
-
+        String counterKey = Constants.REDIS_SUMMARY + conversation.getConversationId();
+        // 初始化滚动摘要触发计数器
+        redisClient.set(counterKey, 0);
         return conversation;
     }
 
