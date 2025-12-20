@@ -1,6 +1,7 @@
 package com.tripdog.controller;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -8,7 +9,21 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.tripdog.common.enums.DocParseStatus;
+import com.tripdog.common.utils.FileUtil;
+import com.tripdog.exception.BussinessException;
+import com.tripdog.exception.DocumentParseException;
+import com.tripdog.model.dto.*;
+import com.tripdog.service.direct.CloudFileService;
+import jakarta.annotation.PostConstruct;
+import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +41,8 @@ import com.tripdog.common.Result;
 import com.tripdog.common.utils.FileUploadUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.config.MinioConfig;
-import com.tripdog.model.dto.DocDelDTO;
 import com.tripdog.service.direct.UserSessionService;
 import com.tripdog.service.direct.VectorDataService;
-import com.tripdog.model.dto.DocDownloadDTO;
-import com.tripdog.model.dto.DocListDTO;
-import com.tripdog.model.dto.FileUploadDTO;
-import com.tripdog.model.dto.UploadDTO;
 import com.tripdog.model.entity.DocDO;
 import com.tripdog.model.vo.DocVO;
 import com.tripdog.model.vo.UserInfoVO;
@@ -47,10 +57,9 @@ import dev.langchain4j.data.document.parser.apache.tika.ApacheTikaDocumentParser
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import static com.tripdog.common.Constants.FILE_ID;
-import static com.tripdog.common.Constants.FILE_NAME;
-import static com.tripdog.common.Constants.ROLE_ID;
-import static com.tripdog.common.Constants.UPLOAD_TIME;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import static com.tripdog.common.Constants.*;
 import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument;
 
 /**
@@ -65,16 +74,30 @@ import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.load
 @Slf4j
 @Tag(name = "文档管理", description = "文档上传、解析、下载、删除和向量化相关接口")
 public class DocController {
-
+    private final String THREAD_POOL_NAME = "doc-pool";
+    private final AtomicInteger threadCounter = new AtomicInteger(0);
+    private final UserSessionService userSessionService;
     private final EmbeddingStoreIngestor ingestor;
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
     private final DocService docService;
-    private final UserSessionService userSessionService;
     private final VectorDataService vectorDataService;
-    private final FileUploadUtils fileUploadUtils;
+    private final CloudFileService cloudFileService;
+    private ThreadPoolExecutor docParseExecutor;
 
-    @PostMapping("/parse")
+    @PostConstruct
+    public void init() {
+        docParseExecutor = new ThreadPoolExecutor(
+                5,
+                10,
+                30, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(30),
+                (r) -> new Thread(r, THREAD_POOL_NAME + "-" + threadCounter.addAndGet(1)),
+                new ThreadPoolExecutor.DiscardOldestPolicy()
+        );
+    }
+
+    @PostMapping(path = "/parse", produces = "text/event-stream;charset=UTF-8")
     @Operation(summary = "文档上传并解析",
               description = "上传文件到MinIO存储，然后解析文档内容并创建向量嵌入用于AI检索")
     @ApiResponses(value = {
@@ -83,68 +106,119 @@ public class DocController {
         @ApiResponse(responseCode = "10105", description = "用户未登录"),
         @ApiResponse(responseCode = "10000", description = "系统异常")
     })
-    public Result<DocVO> upload(UploadDTO uploadDTO) {
-        // 直接从用户会话服务获取用户信息
+    public SseEmitter upload(UploadDTO uploadDTO) {
+        SseEmitter emitter = new SseEmitter(0L);
+        // 验证参数
+        if (uploadDTO == null || uploadDTO.getFile() == null) {
+            sendErrorAndComplete(emitter, "参数错误");
+            return emitter;
+        }
+
+        if (!FileUtil.isTextFile(uploadDTO.getFile().getOriginalFilename())) {
+            sendErrorAndComplete(emitter, "不支持的文件类型，只支持文本文件");
+            return emitter;
+        }
+
         UserInfoVO userInfoVO = userSessionService.getCurrentUser();
         if (userInfoVO == null) {
-             return Result.error(ErrorCode.USER_NOT_LOGIN);
+            sendErrorAndComplete(emitter, "用户未登录");
+            return emitter;
         }
-        MultipartFile file = uploadDTO.getFile();
-        String fileId = UUID.randomUUID().toString();
 
-        // 设置元数据到ThreadLocal，用于向量存储时添加
-        ThreadLocalUtils.set(ROLE_ID, uploadDTO.getRoleId());
-        ThreadLocalUtils.set(FILE_ID, fileId);
-        ThreadLocalUtils.set(FILE_NAME, file.getOriginalFilename());
-        ThreadLocalUtils.set(UPLOAD_TIME, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-
+        DocParseDTO docParseDTO = DocParseDTO.builder()
+                .file(uploadDTO.getFile())
+                .userId(userInfoVO.getId())
+                .roleId(uploadDTO.getRoleId())
+                .build();
         try {
-            // 上传文件到MinIO
-            FileUploadDTO fileUploadDTO = fileUploadUtils.upload2Minio(
-                file,
-                userInfoVO.getId(),
-                "/doc"
-            );
-
-            // 保存文档信息到数据库
-            DocDO docDO = new DocDO();
-            docDO.setFileId(fileId);
-            docDO.setUserId(userInfoVO.getId());
-            docDO.setRoleId(uploadDTO.getRoleId());
-            docDO.setFileUrl(fileUploadDTO.getObjectKey());
-            docDO.setFileName(file.getOriginalFilename());
-            docDO.setFileSize((double) file.getSize());
-
-            if (!docService.saveDoc(docDO)) {
-                log.error("保存文档信息到数据库失败: {}", docDO);
-                return Result.error(ErrorCode.SYSTEM_ERROR);
-            }
-
-            // 先上传到本地临时目录用于解析
-            FileUploadDTO localFileDTO = FileUploadUtils.upload2Local(file, "/tmp");
-            File localFile = new File(localFileDTO.getFilePath());
-
-            try {
-                // 解析文档并创建向量嵌入
-                DocumentParser parser = new ApacheTikaDocumentParser();
-                Document doc = loadDocument(localFile.getAbsolutePath(), parser);
-                ingestor.ingest(doc);
-
-                // 返回文档信息
-                DocVO docVO = docService.getDocByFileId(fileId);
-                return Result.success(docVO);
-            } finally {
-                // 清理本地临时文件
-                FileUploadUtils.deleteLocalFile(localFile);
-            }
+            // 异步解析文档
+            docParseExecutor.execute(() -> {
+                try {
+                    parseDocumentAsync(emitter, docParseDTO);
+                } catch (IOException e) {
+                    emitter.completeWithError(e);
+                    throw new DocumentParseException(e);
+                } finally {
+                    emitter.complete();
+                }
+            });
+            return emitter;
         } catch (Exception e) {
             log.error("文档上传处理异常", e);
-            return Result.error(ErrorCode.SYSTEM_ERROR);
+            sendErrorAndComplete(emitter, "文档上传异常");
+            return emitter;
         } finally {
             ThreadLocalUtils.remove(ROLE_ID);
             ThreadLocalUtils.remove(FILE_ID);
             ThreadLocalUtils.remove(FILE_NAME);
             ThreadLocalUtils.remove(UPLOAD_TIME);
+        }
+    }
+
+    private void parseDocumentAsync(SseEmitter emitter, DocParseDTO dto) throws IOException {
+        Long userId = dto.getUserId();
+        Long roleId = dto.getRoleId();
+        MultipartFile file = dto.getFile();
+        // 上传文件到MinIO
+        String objectKey = "doc/" + userId + "/" + UUID.randomUUID() + FileUtil.getFileSuffix(file.getOriginalFilename());
+        cloudFileService.putObject(file, objectKey);
+
+        // 保存文档信息到数据库
+        String fileId = UUID.randomUUID().toString();
+        DocDO docDO = new DocDO();
+        docDO.setUserId(userId);
+        docDO.setRoleId(roleId);
+        docDO.setFileUrl(objectKey);
+        docDO.setFileName(file.getOriginalFilename());
+        docDO.setFileSize(file.getSize());
+        docDO.setStatus(DocParseStatus.PARSING.getStatus());
+        docDO.setFileId(fileId);
+        if (!docService.saveDoc(docDO)) {
+            log.error("保存文档信息到数据库失败: {}", docDO);
+            sendErrorAndComplete(emitter, "文档数据保存失败");
+        }
+        // 设置切片元数据
+        ThreadLocalUtils.set(FILE_ID, fileId);
+        ThreadLocalUtils.set(ROLE_ID, docDO.getRoleId());
+        ThreadLocalUtils.set(USER_ID, userId);
+        ThreadLocalUtils.set(FILE_NAME, file.getOriginalFilename());
+        ThreadLocalUtils.set(UPLOAD_TIME, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        FileUploadDTO localFileDTO = null;
+        File localFile = null;
+        try {
+            // 上传到本地临时目录用于解析
+            localFileDTO = FileUploadUtils.upload2Local(file, "/tmp");
+            localFile = new File(localFileDTO.getFilePath());
+
+            // 发送解析中的消息
+            emitter.send(SseEmitter.event().name("progress").data("parsing"));
+            // 解析文档并创建向量嵌入
+            DocumentParser parser = new ApacheTikaDocumentParser();
+            Document doc = loadDocument(localFile.getAbsolutePath(), parser);
+            ingestor.ingest(doc);
+
+            // 成功完成
+            docService.updateDocStatus(fileId, DocParseStatus.SUCCESS.getStatus());
+            emitter.send(SseEmitter.event().name("progress").data("success"));
+            emitter.send(SseEmitter.event().name("done").data(""));
+        } catch (Exception e) {
+            log.warn("userid: {}, fileName: {}, doc parse error: {}", docDO.getUserId(), file.getOriginalFilename(), e.getMessage());
+            docService.updateDocStatus(fileId, DocParseStatus.FAIL.getStatus());
+            emitter.send(SseEmitter.event().name("progress").data("fail"));
+        } finally {
+            // 清理本地临时文件
+            if (localFile != null) {
+                FileUtil.deleteLocalFile(localFile);
+            }
+        }
+    }
+
+    private void sendErrorAndComplete(SseEmitter emitter, String errorMsg) {
+        try {
+            emitter.send(SseEmitter.event().name("error").data(errorMsg));
+            emitter.complete();
+        } catch (IOException e) {
+            log.warn("Failed to send error event: {}", e.getMessage());
         }
     }
 

@@ -54,4 +54,12 @@ public interface DocMapper {
      * @return 文档信息
      */
     DocDO selectById(@Param("id") Long id);
+
+    /**
+     * 根据文件ID更新文档状态
+     * @param fileId 文件ID
+     * @param status 文档状态 0-解析中 1-解析成功 2-解析失败
+     * @return 影响行数
+     */
+    int updateStatusByFileId(@Param("fileId") String fileId, @Param("status") Integer status);
 }

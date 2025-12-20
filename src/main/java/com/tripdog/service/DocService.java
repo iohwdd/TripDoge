@@ -52,4 +52,12 @@ public interface DocService {
      * @return 是否成功
      */
     boolean deleteDoc(String fileId);
+
+    /**
+     * 更新文档状态
+     * @param fileId 文件ID
+     * @param status 文档状态 0-解析中 1-解析成功 2-解析失败
+     * @return 是否成功
+     */
+    boolean updateDocStatus(String fileId, Integer status);
 }

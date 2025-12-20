@@ -3,7 +3,6 @@ package com.tripdog.ai.assistant;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
-import dev.langchain4j.service.V;
 import dev.langchain4j.data.message.ChatMessage;
 
 /**

@@ -40,9 +40,14 @@ public class DocDO {
     private String fileName;
 
     /**
-     * 文件大小，单位字节
+     * 文件大小
      */
-    private Double fileSize;
+    private Long fileSize;
+
+    /**
+     * 文档状态 0-解析中 1-解析成功 2-解析失败
+     */
+    private Integer status;
 
     /**
      * 创建时间

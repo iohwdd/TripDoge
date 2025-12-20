@@ -10,17 +10,18 @@
         <result column="file_url" property="fileUrl" jdbcType="LONGVARCHAR"/>
         <result column="file_name" property="fileName" jdbcType="VARCHAR"/>
         <result column="file_size" property="fileSize" jdbcType="BIGINT"/>
+        <result column="status" property="status" jdbcType="INTEGER"/>
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="BaseColumnList">
-        id, file_id, user_id, role_id, file_url, file_name, file_size, create_time, update_time
+        id, file_id, user_id, role_id, file_url, file_name, file_size, status, create_time, update_time
     </sql>
 
     <insert id="insert" parameterType="com.tripdog.model.entity.DocDO" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO t_doc (file_id, user_id, role_id, file_url, file_name, file_size)
-        VALUES (#{fileId}, #{userId}, #{roleId}, #{fileUrl}, #{fileName}, #{fileSize})
+        INSERT INTO t_doc (file_id, user_id, role_id, file_url, file_name, file_size, status)
+        VALUES (#{fileId}, #{userId}, #{roleId}, #{fileUrl}, #{fileName}, #{fileSize}, #{status})
     </insert>
 
     <select id="selectByFileId" parameterType="java.lang.String" resultMap="BaseResultMap">
@@ -56,5 +57,11 @@
     <delete id="deleteByFileId" parameterType="java.lang.String">
         DELETE FROM t_doc WHERE file_id = #{fileId}
     </delete>
+
+    <update id="updateStatusByFileId">
+        UPDATE t_doc
+        SET status = #{status}, update_time = NOW()
+        WHERE file_id = #{fileId}
+    </update>
 
 </mapper>

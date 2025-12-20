@@ -41,14 +41,19 @@ public class DocVO {
     private String fileName;
 
     /**
-     * 文件大小，MB
+     * 文件大小
      */
-    private Double fileSize;
+    private Long fileSize;
 
     /**
      * 文件大小（格式化显示）
      */
     private String fileSizeFormatted;
+
+    /**
+     * 解析状态 0-解析中 1-解析成功 2-解析失败
+     */
+    private Integer status;
 
     /**
      * 创建时间

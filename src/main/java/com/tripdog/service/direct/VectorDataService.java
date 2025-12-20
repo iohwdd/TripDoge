@@ -11,10 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 向量数据管理服务
- * 提供向量数据的删除、查询等功能
- *
- * @author tripdog
+ * 向量数据管理服务*
  */
 @Service
 @RequiredArgsConstructor

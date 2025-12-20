@@ -58,6 +58,12 @@ public class DocServiceImpl implements DocService {
         return docMapper.deleteByFileId(fileId) > 0;
     }
 
+    @Override
+    public boolean updateDocStatus(String fileId, Integer status) {
+        return  docMapper.updateStatusByFileId(fileId, status) == 1;
+    }
+
+
     /**
      * 转换为VO对象
      */
@@ -71,6 +77,7 @@ public class DocServiceImpl implements DocService {
         vo.setFileName(doc.getFileName());
         vo.setFileSize(doc.getFileSize());
         vo.setFileSizeFormatted(formatFileSize(doc.getFileSize()));
+        vo.setStatus(doc.getStatus());
         vo.setCreateTime(doc.getCreateTime());
         vo.setUpdateTime(doc.getUpdateTime());
         return vo;
@@ -79,7 +86,7 @@ public class DocServiceImpl implements DocService {
     /**
      * 格式化文件大小
      */
-    private String formatFileSize(Double sizeInBytes) {
+    private String formatFileSize(Long sizeInBytes) {
         if (sizeInBytes == null || sizeInBytes <= 0) {
             return "0 B";
         }
@@ -94,4 +101,5 @@ public class DocServiceImpl implements DocService {
         DecimalFormat df = new DecimalFormat("#,##0.#");
         return df.format(sizeInBytes / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
+
 }

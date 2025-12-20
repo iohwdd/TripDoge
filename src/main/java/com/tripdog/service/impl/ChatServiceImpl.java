@@ -52,6 +52,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO chatReqDTO) {
+        long start = System.currentTimeMillis();
         ThreadLocalUtils.set(ROLE_ID, roleId);
         SseEmitter emitter = new SseEmitter(-1L);
         final QwenRealtimeTtsService.RealtimeTtsSession[] ttsHolder = new QwenRealtimeTtsService.RealtimeTtsSession[1];
@@ -177,12 +178,12 @@ public class ChatServiceImpl implements ChatService {
                 qwenRealtimeTtsService.stopSession(ttsKeyHolder[0]);
             }
             if (emitterClosed.compareAndSet(false, true)) {
-            emitter.completeWithError(e);
+                emitter.completeWithError(e);
             }
         } finally {
             ThreadLocalUtils.remove(ROLE_ID);
         }
-
+        log.info("userid: {}, ai response time consuming: {}s", userId, (System.currentTimeMillis() - start) / 1000);
         return emitter;
     }
 
