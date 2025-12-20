@@ -74,28 +74,11 @@ import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.load
 @Slf4j
 @Tag(name = "文档管理", description = "文档上传、解析、下载、删除和向量化相关接口")
 public class DocController {
-    private final String THREAD_POOL_NAME = "doc-pool";
-    private final AtomicInteger threadCounter = new AtomicInteger(0);
     private final UserSessionService userSessionService;
-    private final EmbeddingStoreIngestor ingestor;
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
     private final DocService docService;
     private final VectorDataService vectorDataService;
-    private final CloudFileService cloudFileService;
-    private ThreadPoolExecutor docParseExecutor;
-
-    @PostConstruct
-    public void init() {
-        docParseExecutor = new ThreadPoolExecutor(
-                5,
-                10,
-                30, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(30),
-                (r) -> new Thread(r, THREAD_POOL_NAME + "-" + threadCounter.addAndGet(1)),
-                new ThreadPoolExecutor.DiscardOldestPolicy()
-        );
-    }
 
     @PostMapping(path = "/parse", produces = "text/event-stream;charset=UTF-8")
     @Operation(summary = "文档上传并解析",
@@ -107,120 +90,9 @@ public class DocController {
         @ApiResponse(responseCode = "10000", description = "系统异常")
     })
     public SseEmitter upload(UploadDTO uploadDTO) {
-        SseEmitter emitter = new SseEmitter(0L);
-        // 验证参数
-        if (uploadDTO == null || uploadDTO.getFile() == null) {
-            sendErrorAndComplete(emitter, "参数错误");
-            return emitter;
-        }
-
-        if (!FileUtil.isTextFile(uploadDTO.getFile().getOriginalFilename())) {
-            sendErrorAndComplete(emitter, "不支持的文件类型，只支持文本文件");
-            return emitter;
-        }
-
-        UserInfoVO userInfoVO = userSessionService.getCurrentUser();
-        if (userInfoVO == null) {
-            sendErrorAndComplete(emitter, "用户未登录");
-            return emitter;
-        }
-
-        DocParseDTO docParseDTO = DocParseDTO.builder()
-                .file(uploadDTO.getFile())
-                .userId(userInfoVO.getId())
-                .roleId(uploadDTO.getRoleId())
-                .build();
-        try {
-            // 异步解析文档
-            docParseExecutor.execute(() -> {
-                try {
-                    parseDocumentAsync(emitter, docParseDTO);
-                } catch (IOException e) {
-                    emitter.completeWithError(e);
-                    throw new DocumentParseException(e);
-                } finally {
-                    emitter.complete();
-                }
-            });
-            return emitter;
-        } catch (Exception e) {
-            log.error("文档上传处理异常", e);
-            sendErrorAndComplete(emitter, "文档上传异常");
-            return emitter;
-        } finally {
-            ThreadLocalUtils.remove(ROLE_ID);
-            ThreadLocalUtils.remove(FILE_ID);
-            ThreadLocalUtils.remove(FILE_NAME);
-            ThreadLocalUtils.remove(UPLOAD_TIME);
-        }
+        return docService.docParse(uploadDTO);
     }
 
-    private void parseDocumentAsync(SseEmitter emitter, DocParseDTO dto) throws IOException {
-        Long userId = dto.getUserId();
-        Long roleId = dto.getRoleId();
-        MultipartFile file = dto.getFile();
-        // 上传文件到MinIO
-        String objectKey = "doc/" + userId + "/" + UUID.randomUUID() + FileUtil.getFileSuffix(file.getOriginalFilename());
-        cloudFileService.putObject(file, objectKey);
-
-        // 保存文档信息到数据库
-        String fileId = UUID.randomUUID().toString();
-        DocDO docDO = new DocDO();
-        docDO.setUserId(userId);
-        docDO.setRoleId(roleId);
-        docDO.setFileUrl(objectKey);
-        docDO.setFileName(file.getOriginalFilename());
-        docDO.setFileSize(file.getSize());
-        docDO.setStatus(DocParseStatus.PARSING.getStatus());
-        docDO.setFileId(fileId);
-        if (!docService.saveDoc(docDO)) {
-            log.error("保存文档信息到数据库失败: {}", docDO);
-            sendErrorAndComplete(emitter, "文档数据保存失败");
-        }
-        // 设置切片元数据
-        ThreadLocalUtils.set(FILE_ID, fileId);
-        ThreadLocalUtils.set(ROLE_ID, docDO.getRoleId());
-        ThreadLocalUtils.set(USER_ID, userId);
-        ThreadLocalUtils.set(FILE_NAME, file.getOriginalFilename());
-        ThreadLocalUtils.set(UPLOAD_TIME, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        FileUploadDTO localFileDTO = null;
-        File localFile = null;
-        try {
-            // 上传到本地临时目录用于解析
-            localFileDTO = FileUploadUtils.upload2Local(file, "/tmp");
-            localFile = new File(localFileDTO.getFilePath());
-
-            // 发送解析中的消息
-            emitter.send(SseEmitter.event().name("progress").data("parsing"));
-            // 解析文档并创建向量嵌入
-            DocumentParser parser = new ApacheTikaDocumentParser();
-            Document doc = loadDocument(localFile.getAbsolutePath(), parser);
-            ingestor.ingest(doc);
-
-            // 成功完成
-            docService.updateDocStatus(fileId, DocParseStatus.SUCCESS.getStatus());
-            emitter.send(SseEmitter.event().name("progress").data("success"));
-            emitter.send(SseEmitter.event().name("done").data(""));
-        } catch (Exception e) {
-            log.warn("userid: {}, fileName: {}, doc parse error: {}", docDO.getUserId(), file.getOriginalFilename(), e.getMessage());
-            docService.updateDocStatus(fileId, DocParseStatus.FAIL.getStatus());
-            emitter.send(SseEmitter.event().name("progress").data("fail"));
-        } finally {
-            // 清理本地临时文件
-            if (localFile != null) {
-                FileUtil.deleteLocalFile(localFile);
-            }
-        }
-    }
-
-    private void sendErrorAndComplete(SseEmitter emitter, String errorMsg) {
-        try {
-            emitter.send(SseEmitter.event().name("error").data(errorMsg));
-            emitter.complete();
-        } catch (IOException e) {
-            log.warn("Failed to send error event: {}", e.getMessage());
-        }
-    }
 
     @PostMapping("/list")
     @Operation(summary = "查询文档列表",

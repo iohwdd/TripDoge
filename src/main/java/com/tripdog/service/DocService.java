@@ -1,7 +1,9 @@
 package com.tripdog.service;
 
+import com.tripdog.model.dto.UploadDTO;
 import com.tripdog.model.entity.DocDO;
 import com.tripdog.model.vo.DocVO;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -9,6 +11,8 @@ import java.util.List;
  * 文档服务接口
  */
 public interface DocService {
+
+    SseEmitter docParse(UploadDTO uploadDTO);
 
     /**
      * 保存文档信息
