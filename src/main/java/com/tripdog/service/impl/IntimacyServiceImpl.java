@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import com.tripdog.common.Constants;
 import com.tripdog.common.middleware.RedisClient;
@@ -57,6 +58,11 @@ public class IntimacyServiceImpl implements IntimacyService {
     @Override
     @Transactional
     public IntimacyChange handleUserMessage(Long uid, Long roleId) {
+        // 亲密度100封顶
+        Integer intimacyNow = (Integer) redisClient.get(keyIntimacy(uid, roleId));
+        if (intimacyNow != null && intimacyNow >= INTIMACY_MAX) {
+            return null;
+        }
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
 
@@ -126,7 +132,7 @@ public class IntimacyServiceImpl implements IntimacyService {
             return false;
         }
         // 未存在，则设置标记并加分
-        redisClient.set(key, "1", ttlToNextMidnightPlusBufferMinutes(60), java.util.concurrent.TimeUnit.MINUTES);
+        redisClient.set(key, "1", ttlToNextMidnightPlusBufferMinutes(60), TimeUnit.MINUTES);
         return true;
     }
 

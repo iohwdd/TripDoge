@@ -2,21 +2,14 @@ package com.tripdog.model.dto;
 
 import com.tripdog.ai.tts.QwenRealtimeTtsService;
 import lombok.Data;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
 @Data
-public class OpenApiChatDTO {
+public class ChatDTO {
     private SseEmitter emitter;
-    private String brand;
     private String conversationId;
     private String content;
-    private MultipartFile file; // todo 多个图片支持
-    private String fileType;
-    private String fileId;
     private String ttsKey;
     private QwenRealtimeTtsService.RealtimeTtsSession ttsHolder;
     private AtomicBoolean emitterClosed;

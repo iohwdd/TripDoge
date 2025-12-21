@@ -1,9 +1,10 @@
-package com.tripdog.common.openapi;
+package com.tripdog.ai.model.openapi;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.*;
 import com.tripdog.ai.CustomerChatMemoryProvider;
+import com.tripdog.ai.tts.QwenRealtimeTtsService;
 import com.tripdog.common.utils.FileUtil;
 import com.tripdog.common.utils.MinioUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
@@ -23,6 +24,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.tripdog.common.Constants.USER_ID;
@@ -36,6 +39,7 @@ import static com.tripdog.common.Constants.USER_ID;
 public class OpenApiClient {
     public static final String QWEN = "qwen";
 
+    private final QwenRealtimeTtsService qwenRealtimeTtsService;
     private final CustomerChatMemoryProvider chatMemoryProvider;
     private final MinioUtils minioUtils;
     private Map<String, OpenAIClient> clients;
@@ -55,7 +59,8 @@ public class OpenApiClient {
     }
 
     public SseEmitter chat(OpenApiChatDTO dto) {
-        SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
+        SseEmitter emitter = dto.getEmitter();
+        AtomicBoolean emitterClosed = dto.getEmitterClosed();
         AtomicReference<Long> uid = new AtomicReference<>((Long) ThreadLocalUtils.get(USER_ID));
         // 异步处理，不阻塞主线程
         CompletableFuture.runAsync(() -> {
@@ -105,7 +110,7 @@ public class OpenApiClient {
                     aiClient.chat().completions().createStreaming(params)
                             .stream()
                             .forEach(chunk -> {
-                                if (streamFailed[0]) {
+                                if (streamFailed[0] || (emitterClosed != null && emitterClosed.get())) {
                                     return;
                                 }
                                 try {
@@ -116,32 +121,60 @@ public class OpenApiClient {
                                                 try {
                                                     sb.append(content);
                                                     emitter.send(content);
+                                                    // TTS处理必须在send之后，确保发送成功
+                                                    if(dto.getTtsHolder() != null) {
+                                                        dto.getTtsHolder().appendText(content);
+                                                    }
                                                 } catch (IOException e) {
                                                     streamFailed[0] = true;
+                                                    if (emitterClosed != null) {
+                                                        emitterClosed.set(true);
+                                                    }
+                                                    throw new RuntimeException("SSE发送失败", e);
                                                 }
                                             });
                                 } catch (Exception e) {
                                     streamFailed[0] = true;
+                                    if (emitterClosed != null) {
+                                        emitterClosed.set(true);
+                                    }
                                 }
                             });
 
                     // 如果流处理失败，直接返回
                     if (streamFailed[0]) {
+                        cleanupTtsResources(dto);
                         return;
                     }
                 } catch (Exception e) {
-                    emitter.completeWithError(e);
+                    cleanupTtsResources(dto);
+                    if (emitterClosed != null && emitterClosed.compareAndSet(false, true)) {
+                        emitter.completeWithError(e);
+                    }
                     return;
+                } finally {
+                    try {
+                        // 确保完整响应被保存到TTS
+                        if(dto.getTtsHolder() != null) {
+                            dto.getTtsHolder().finish();
+                        }
+                    } catch (Exception e) {
+                        // 日志记录但不中断流程
+                    }
                 }
 
                 // 保存完整对话到记忆
                 chatMemory.add(AiMessage.from(sb.toString()));
-                emitter.complete();
+                if (emitterClosed == null || !emitterClosed.get()) {
+                    emitter.complete();
+                }
 
             } catch (Exception e) {
-                emitter.completeWithError(e);
+                if (emitterClosed != null && emitterClosed.compareAndSet(false, true)) {
+                    emitter.completeWithError(e);
+                }
             } finally {
-                // 清理不再需要的文件
+                cleanupTtsResources(dto);
             }
         }, Executors.newVirtualThreadPerTaskExecutor());
 
@@ -187,5 +220,32 @@ public class OpenApiClient {
     private String extractImageUrl(String str) {
         // todo 正则提取图片url
         return "";
+    }
+
+    /**
+     * 清理 TTS 相关资源
+     */
+    private void cleanupTtsResources(OpenApiChatDTO dto) {
+        if (dto.getTtsHolder() != null) {
+            try {
+                dto.getTtsHolder().finish();
+                dto.getTtsHolder().awaitCompletion(10, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                // 日志记录但不中断流程
+            } finally {
+                try {
+                    dto.getTtsHolder().close();
+                } catch (Exception e) {
+                    // 日志记录
+                }
+            }
+        }
+        if (dto.getTtsKey() != null) {
+            try {
+                qwenRealtimeTtsService.stopSession(dto.getTtsKey());
+            } catch (Exception e) {
+                // 日志记录
+            }
+        }
     }
 }
