@@ -3,6 +3,7 @@ package com.tripdog.controller;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.common.utils.MinioUtils;
+import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.vo.RoleInfoVO;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.tripdog.common.Constants.CONVERSATION_ID;
+
 /**
  * 角色控制器
  */
@@ -33,7 +36,6 @@ import java.util.List;
 public class RoleController {
     private final RoleService roleService;
     private final ConversationService conversationService;
-    private final ConversationMapper conversationMapper;
     private final UserSessionService userSessionService;
     private final MinioUtils minioUtils;
 
@@ -84,6 +86,8 @@ public class RoleController {
         if (roleDetail == null) {
             return Result.error(ErrorCode.NOT_FOUND_ERROR, "角色不存在");
         }
+        ConversationDO conv = conversationService.findConversationByUserAndRole(userSessionService.getCurrentUserId(), roleId);
+        ThreadLocalUtils.set(CONVERSATION_ID, conv.getConversationId());
         return Result.success(roleDetail);
     }
 

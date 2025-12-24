@@ -5,7 +5,9 @@ import com.tripdog.common.Result;
 import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.model.dto.TravelPlanRequest;
 import com.tripdog.model.dto.TravelPlanResponse;
+import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.vo.UserInfoVO;
+import com.tripdog.service.ConversationService;
 import com.tripdog.service.TravelPlanService;
 import com.tripdog.service.direct.UserSessionService;
 import lombok.RequiredArgsConstructor;
@@ -14,14 +16,13 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.concurrent.CompletableFuture;
 
-import static com.tripdog.common.Constants.ROLE_ID;
-import static com.tripdog.common.Constants.USER_ID;
+import static com.tripdog.common.Constants.*;
 
 @RestController
 @RequestMapping("/travel")
 @RequiredArgsConstructor
 public class TravelPlanController {
-
+    private final ConversationService conversationService;
     private final TravelPlanService travelPlanService;
     private final UserSessionService userSessionService;
 
@@ -52,6 +53,8 @@ public class TravelPlanController {
                 // 子线程补写 ThreadLocal，避免异步丢失
                 ThreadLocalUtils.set(USER_ID, user.getId());
                 ThreadLocalUtils.set(ROLE_ID, roleId);
+                ConversationDO conv = conversationService.findConversationByUserAndRole(user.getId(), roleId);
+                ThreadLocalUtils.set(CONVERSATION_ID, conv.getConversationId());
                 // 进度开始
                 emitter.send(SseEmitter.event().name("progress").data(java.util.Map.of("status", "running")));
 
@@ -97,6 +100,8 @@ public class TravelPlanController {
         try {
             ThreadLocalUtils.set(USER_ID, user.getId());
             ThreadLocalUtils.set(ROLE_ID, roleId == null ? 0L : roleId);
+            ConversationDO conv = conversationService.findConversationByUserAndRole(user.getId(), roleId);
+            ThreadLocalUtils.set(CONVERSATION_ID, conv.getConversationId());
             TravelPlanResponse resp = travelPlanService.runTravelPlan(roleId, req);
             return Result.success(resp);
         } finally {

@@ -50,11 +50,11 @@ public class AiModelHolder {
                 .modelName("qwen3-max")
                 .build();
         ZhipuAiStreamingChatModel zhipuAiStreamingChatModel = ZhipuAiStreamingChatModel.builder()
-                .model("glm-4.6")
+                .model("glm-4.7")
                 .apiKey(zhipuApiKey)
                 .build();
         ZhipuAiChatModel zhipuAiChatModel = ZhipuAiChatModel.builder()
-                .model("glm-4.6")
+                .model("glm-4.7")
                 .apiKey(zhipuApiKey)
                 .build();
         chatModels.put(QwenChat, qwenChatModel);
