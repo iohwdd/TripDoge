@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tripdog.mapper.UserSkillLimitMapper">
+
+    <resultMap id="BaseResultMap" type="com.tripdog.model.entity.UserSkillLimitDO">
+        <id     column="id"          property="id"         jdbcType="BIGINT"/>
+        <result column="user_id"     property="userId"     jdbcType="BIGINT"/>
+        <result column="role_id"     property="roleId"     jdbcType="BIGINT"/>
+        <result column="skill_exec_limit_month"  property="skillExecLimitMonth"  jdbcType="INTEGER"/>
+        <result column="created_at"  property="createdAt"  jdbcType="TIMESTAMP"/>
+        <result column="updated_at"  property="updatedAt"  jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 插入新记录 -->
+    <insert id="insert">
+        INSERT INTO t_user_skill_limit (user_id, role_id, skill_exec_limit_month, created_at, updated_at)
+        VALUES (#{userId}, #{roleId}, #{skillExecLimitMonth}, NOW(), NOW())
+    </insert>
+
+    <!-- upsert 根据 user_id + role_id 唯一键 -->
+    <insert id="upsert" parameterType="com.tripdog.model.entity.UserSkillLimitDO">
+        INSERT INTO t_user_skill_limit (user_id, role_id, skill_exec_limit_month, created_at, updated_at)
+        VALUES (#{userId}, #{roleId}, #{skillExecLimitMonth}, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            skill_exec_limit_month = VALUES(skill_exec_limit_month),
+            updated_at = NOW()
+    </insert>
+
+    <select id="selectByUserAndRole" resultMap="BaseResultMap">
+        SELECT * FROM t_user_skill_limit
+        WHERE user_id = #{userId}
+          AND role_id = #{roleId}
+        LIMIT 1
+    </select>
+
+    <select id="listByUser" resultMap="BaseResultMap">
+        SELECT * FROM t_user_skill_limit
+        WHERE user_id = #{userId}
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="listByRole" resultMap="BaseResultMap">
+        SELECT * FROM t_user_skill_limit
+        WHERE role_id = #{roleId}
+        ORDER BY updated_at DESC
+    </select>
+
+    <update id="updateLimitByUserAndRole">
+        UPDATE t_user_skill_limit
+        SET skill_exec_limit_month = #{limit},
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND role_id = #{roleId}
+    </update>
+
+    <select id="pageById" resultMap="BaseResultMap">
+        SELECT * FROM t_user_skill_limit
+        WHERE id > #{lastId}
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_user_skill_limit
+    </select>
+
+</mapper>
+

@@ -253,6 +253,24 @@ public class RoleConfigParser {
         return 0.9;
     }
 
+    public static int extractSkillExecLimitMonth(String aiSettingJson) {
+        if (aiSettingJson == null || aiSettingJson.trim().isEmpty()) {
+            return 10;
+        }
+
+        try {
+            JsonNode aiSetting = objectMapper.readTree(aiSettingJson);
+            JsonNode node = aiSetting.get("skill_exec_limit_month");
+            if (node != null && node.isNumber()) {
+                return node.asInt();
+            }
+        } catch (Exception e) {
+            log.error("解析max_tokens参数失败: {}", aiSettingJson, e);
+        }
+
+        return 10;
+    }
+
     /**
      * 获取默认系统提示词
      *

@@ -3,6 +3,8 @@ package com.tripdog.service.impl;
 import java.util.List;
 
 import com.tripdog.common.utils.MinioUtils;
+import com.tripdog.service.UserSkillLimitService;
+import com.tripdog.service.direct.UserSessionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,9 +28,10 @@ import lombok.RequiredArgsConstructor;
 public class RoleServiceImpl implements RoleService {
     @Value("${minio.bucket-name}")
     private String bucketName;
-
-    final RoleMapper roleMapper;
-    final MinioUtils minioUtils;
+    private final UserSessionService userSessionService;
+    private final UserSkillLimitService userSkillLimitService;
+    private final RoleMapper roleMapper;
+    private final MinioUtils minioUtils;
 
     @Override
     public List<RoleInfoVO> getRoleInfoList() {
@@ -48,12 +51,14 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public RoleDetailVO getRoleDetailById(Long roleId) {
         RoleDO roleDO = roleMapper.selectById(roleId);
+        Long userId = userSessionService.getCurrentUserId();
         if (roleDO == null) {
             return null;
         }
         roleDO.setAvatarUrl(minioUtils.getTemporaryUrlByPath(roleDO.getAvatarUrl()));
-
-        return convertToRoleDetailVO(roleDO);
+        RoleDetailVO roleDetailVO = convertToRoleDetailVO(roleDO);
+        roleDetailVO.setSkillLimit(userSkillLimitService.getRoleSkillLimit(userId, roleId));
+        return roleDetailVO;
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.TravelPlanService;
+import com.tripdog.service.UserSkillLimitService;
 import com.tripdog.service.direct.UserSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ public class TravelPlanController {
     private final ConversationService conversationService;
     private final TravelPlanService travelPlanService;
     private final UserSessionService userSessionService;
+    private final UserSkillLimitService userSkillLimitService;
 
     /**
      * SSE 版本：前端可订阅进度与完成事件。
@@ -42,11 +44,15 @@ public class TravelPlanController {
             emitter.complete();
             return emitter;
         }
-
         if (req.getRawRequirement() == null) {
             req.setRawRequirement(buildRawRequirement(req));
         }
 
+        // 校验技能额度是否够
+        int roleSkillLimit = userSkillLimitService.getRoleSkillLimit(user.getId(), roleId);
+        if(roleSkillLimit == 0) {
+            throw new RuntimeException(ErrorCode.NO_SKILL_LIMIT.getMessage());
+        }
         SseEmitter emitter = new SseEmitter(0L); // 不超时，避免长耗时中断
         CompletableFuture.runAsync(() -> {
             try {
@@ -84,6 +90,7 @@ public class TravelPlanController {
                 ThreadLocalUtils.remove(ROLE_ID);
             }
         });
+        userSkillLimitService.updateSkillLimit(user.getId(), roleId, -1);
         return emitter;
     }
 
@@ -94,6 +101,13 @@ public class TravelPlanController {
         if (user == null) {
             return Result.error(ErrorCode.USER_NOT_LOGIN);
         }
+
+        // 校验技能额度是否够
+        int roleSkillLimit = userSkillLimitService.getRoleSkillLimit(user.getId(), roleId);
+        if (roleSkillLimit == 0) {
+            return Result.error(ErrorCode.NO_SKILL_LIMIT);
+        }
+
         if (req.getRawRequirement() == null) {
             req.setRawRequirement(buildRawRequirement(req));
         }
@@ -103,6 +117,8 @@ public class TravelPlanController {
             ConversationDO conv = conversationService.findConversationByUserAndRole(user.getId(), roleId);
             ThreadLocalUtils.set(CONVERSATION_ID, conv.getConversationId());
             TravelPlanResponse resp = travelPlanService.runTravelPlan(roleId, req);
+            // 扣减额度（与 SSE 版本保持一致）
+            userSkillLimitService.updateSkillLimit(user.getId(), roleId, -1);
             return Result.success(resp);
         } finally {
             ThreadLocalUtils.remove(USER_ID);

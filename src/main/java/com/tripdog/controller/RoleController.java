@@ -11,6 +11,7 @@ import com.tripdog.model.vo.RoleDetailVO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
+import com.tripdog.service.UserSkillLimitService;
 import com.tripdog.service.direct.UserSessionService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -83,10 +84,11 @@ public class RoleController {
     @PostMapping("/{roleId}/detail")
     public Result<RoleDetailVO> getRoleDetail(@PathVariable Long roleId) {
         RoleDetailVO roleDetail = roleService.getRoleDetailById(roleId);
+        Long userId = userSessionService.getCurrentUserId();
         if (roleDetail == null) {
             return Result.error(ErrorCode.NOT_FOUND_ERROR, "角色不存在");
         }
-        ConversationDO conv = conversationService.findConversationByUserAndRole(userSessionService.getCurrentUserId(), roleId);
+        ConversationDO conv = conversationService.findConversationByUserAndRole(userId, roleId);
         ThreadLocalUtils.set(CONVERSATION_ID, conv.getConversationId());
         return Result.success(roleDetail);
     }

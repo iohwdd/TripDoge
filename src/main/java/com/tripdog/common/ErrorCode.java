@@ -47,7 +47,10 @@ public enum ErrorCode {
     NOT_FOUND(10404, "资源不存在"),
 
     // Minio
-    NO_FOUND_FILE(10600, "文件不存在");
+    NO_FOUND_FILE(10600, "文件不存在"),
+
+    // 技能调度额度
+    NO_SKILL_LIMIT(10700, "技能调度额度不足");
 
     private final int code;
     private final String message;

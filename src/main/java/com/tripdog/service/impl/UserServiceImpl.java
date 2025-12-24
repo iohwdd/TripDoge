@@ -3,11 +3,16 @@ package com.tripdog.service.impl;
 import com.tripdog.common.Constants;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.utils.MinioUtils;
+import com.tripdog.common.utils.RoleConfigParser;
+import com.tripdog.mapper.RoleMapper;
 import com.tripdog.mapper.UserMapper;
+import com.tripdog.mapper.UserSkillLimitMapper;
 import com.tripdog.model.converter.UserConverter;
 import com.tripdog.model.dto.UserLoginDTO;
 import com.tripdog.model.dto.UserRegisterDTO;
+import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.entity.UserDO;
+import com.tripdog.model.entity.UserSkillLimitDO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.EmailService;
 import com.tripdog.service.UserService;
@@ -17,15 +22,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * 用户服务实现类
  */
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
     private final UserMapper userMapper;
     private final EmailService emailService;
+    private final UserSkillLimitMapper userSkillLimitMapper;
+    private final RoleMapper roleMapper;
     private final PasswordEncoder passwordEncoder;
     private final MinioUtils minioUtils;
 
@@ -82,8 +92,20 @@ public class UserServiceImpl implements UserService {
         if (!success) {
             throw new RuntimeException(ErrorCode.USER_REGISTER_FAILED.getMessage());
         }
-
-        // 5. 返回用户信息
+        // 5. 初始化技能额度
+        List<RoleDO> roleList = roleMapper.selectActiveRoles();
+        Map<Long, Integer> roleSkillLimitMap = new HashMap<>();
+        for (RoleDO roleDO : roleList) {
+            int limitMonth = RoleConfigParser.extractSkillExecLimitMonth(roleDO.getRoleSetting());
+            roleSkillLimitMap.put(roleDO.getId(), limitMonth);
+        }
+        roleSkillLimitMap.forEach((roleId, limitMonth) -> {
+            UserSkillLimitDO userSkillLimitDO = new UserSkillLimitDO();
+            userSkillLimitDO.setRoleId(roleId);
+            userSkillLimitDO.setUserId(userDO.getId());
+            userSkillLimitDO.setSkillExecLimitMonth(limitMonth);
+            userSkillLimitMapper.insert(userDO.getId(), roleId, limitMonth);
+        });
         return UserConverter.INSTANCE.toUserInfoVO(userDO);
     }
 

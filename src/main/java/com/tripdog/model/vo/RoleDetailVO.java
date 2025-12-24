@@ -51,4 +51,9 @@ public class RoleDetailVO {
      * 排序顺序
      */
     private Integer sortOrder;
+
+    /**
+     * 月度技能执行额度
+     */
+    private Integer skillLimit;
 }
