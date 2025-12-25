@@ -13,4 +13,14 @@ public class DocListDTO {
      * 角色ID
      */
     private Long roleId;
+
+    /**
+     * 页码（可选，默认 1）
+     */
+    private Integer page;
+
+    /**
+     * 每页大小（可选，默认 10）
+     */
+    private Integer pageSize;
 }

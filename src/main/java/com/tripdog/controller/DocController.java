@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.tripdog.common.PageVO;
 import com.tripdog.common.enums.DocParseStatus;
 import com.tripdog.common.utils.FileUtil;
 import com.tripdog.exception.BussinessException;
@@ -101,12 +102,15 @@ public class DocController {
         @ApiResponse(responseCode = "200", description = "查询成功"),
         @ApiResponse(responseCode = "10105", description = "用户未登录")
     })
-    public Result<List<DocVO>> list(@RequestBody DocListDTO docListDTO) {
+    public Result<PageVO<DocVO>> list(@RequestBody DocListDTO docListDTO) {
         // 从用户会话服务获取当前登录用户信息
         UserInfoVO userInfoVO = userSessionService.getCurrentUser();
         if (userInfoVO == null) {
             throw new RuntimeException(ErrorCode.USER_NOT_LOGIN.getMessage());
         }
+
+        Integer page = docListDTO != null && docListDTO.getPage() != null ? docListDTO.getPage() : 1;
+        Integer pageSize = docListDTO != null && docListDTO.getPageSize() != null ? docListDTO.getPageSize() : 10;
 
         List<DocVO> docs;
         if (docListDTO != null && docListDTO.getRoleId() != null) {
@@ -117,7 +121,7 @@ public class DocController {
             docs = docService.getDocsByUserId(userInfoVO.getId());
         }
 
-        return Result.success(docs);
+        return Result.success(PageVO.of(docs, page, pageSize));
     }
 
     @PostMapping("/download")

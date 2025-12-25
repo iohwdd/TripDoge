@@ -2,6 +2,7 @@ package com.tripdog.controller;
 
 import java.util.List;
 
+import com.tripdog.common.PageVO;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -96,7 +97,9 @@ public class ChatController {
             @ApiResponse(responseCode = "10105", description = "用户未登录")
     })
     @PostMapping("/{roleId}/history")
-    public Result<List<ChatHistoryDO>> getHistory(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId) {
+    public Result<PageVO<ChatHistoryDO>> getHistory(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId,
+                                                    @RequestParam(defaultValue = "1") Integer page,
+                                                    @RequestParam(defaultValue = "20") Integer pageSize) {
         // 从用户会话服务获取当前登录用户信息
         UserInfoVO userInfo = userSessionService.getCurrentUser();
         if(userInfo == null) {
@@ -104,11 +107,11 @@ public class ChatController {
         }
         ConversationDO conversation = conversationServiceImpl.findConversationByUserAndRole(userInfo.getId(), roleId);
         if (conversation == null) {
-            return Result.success(List.of());
+            return Result.success(null);
         }
 
         List<ChatHistoryDO> history = conversationServiceImpl.getContextMessages(conversation.getConversationId(), null);
-        return Result.success(history);
+        return Result.success(PageVO.of(history, page, pageSize));
     }
 
 }

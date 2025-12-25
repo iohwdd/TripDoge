@@ -1,5 +1,6 @@
 package com.tripdog.controller;
 
+import com.tripdog.common.PageVO;
 import com.tripdog.common.Result;
 import com.tripdog.model.entity.SkillHistory;
 import com.tripdog.common.utils.MinioUtils;
@@ -42,12 +43,15 @@ public class SkillController {
     }
 
     @GetMapping("/history")
-    public Result<List<SkillHistory>> listHistory(@RequestParam Long roleId) {
+    public Result<PageVO<SkillHistory>> listHistory(@RequestParam Long roleId,
+                                                    @RequestParam(defaultValue = "1") Integer page,
+                                                    @RequestParam(defaultValue = "10") Integer pageSize) {
         UserInfoVO user = userSessionService.getCurrentUser();
         if (user == null) {
             return Result.error(ErrorCode.USER_NOT_LOGIN);
         }
-        return Result.success(skillHistoryService.listByRole(roleId, user.getId()));
+        List<SkillHistory> list = skillHistoryService.listByRole(roleId, user.getId());
+        return Result.success(PageVO.of(list, page, pageSize));
     }
 
     @GetMapping("/history/{id}/md")
