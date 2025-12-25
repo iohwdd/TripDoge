@@ -4,7 +4,9 @@ import com.tripdog.common.Result;
 import com.tripdog.model.entity.SkillHistory;
 import com.tripdog.common.utils.MinioUtils;
 import com.tripdog.model.vo.UserInfoVO;
+import com.tripdog.model.vo.SkillLimitVO;
 import com.tripdog.service.SkillHistoryService;
+import com.tripdog.service.UserSkillLimitService;
 import com.tripdog.service.direct.UserSessionService;
 import com.tripdog.common.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +25,21 @@ import java.util.List;
 public class SkillController {
 
     private final SkillHistoryService skillHistoryService;
+    private final UserSkillLimitService userSkillLimitService;
     private final UserSessionService userSessionService;
     private final MinioUtils minioUtils;
+
+    @GetMapping("/limit")
+    public Result<SkillLimitVO> getSkillLimit(@RequestParam Long roleId) {
+        UserInfoVO user = userSessionService.getCurrentUser();
+        if (user == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
+        int currentLimit = userSkillLimitService.getUserCurrentSkillLimit(user.getId(), roleId);
+        int roleLimit = userSkillLimitService.getRoleSkillLimit(user.getId(), roleId);
+        SkillLimitVO vo = new SkillLimitVO(roleId, currentLimit, roleLimit);
+        return Result.success(vo);
+    }
 
     @GetMapping("/history")
     public Result<List<SkillHistory>> listHistory(@RequestParam Long roleId) {
