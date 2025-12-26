@@ -50,7 +50,10 @@ public enum ErrorCode {
     NO_FOUND_FILE(10600, "文件不存在"),
 
     // 技能调度额度
-    NO_SKILL_LIMIT(10700, "技能调度额度不足");
+    NO_SKILL_LIMIT(10700, "技能调度额度不足"),
+
+    // 限流
+    LIMIT_BY_RPM(10800, "请求过于频繁，请稍后再试");
 
     private final int code;
     private final String message;

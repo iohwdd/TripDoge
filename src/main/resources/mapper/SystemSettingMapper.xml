@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tripdog.mapper.SystemSettingMapper">
+
+    <resultMap id="BaseResultMap" type="com.tripdog.model.entity.SystemSettingDO">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="key" property="key" jdbcType="VARCHAR"/>
+        <result column="value" property="value" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 插入系统设置 -->
+    <insert id="insert" parameterType="com.tripdog.model.entity.SystemSettingDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_system_setting (`key`, `value`, created_at, updated_at)
+        VALUES (#{key}, #{value}, NOW(), NOW())
+    </insert>
+
+    <!-- 根据ID删除系统设置 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM t_system_setting WHERE id = #{id}
+    </delete>
+
+    <!-- 根据ID更新系统设置 -->
+    <update id="updateById" parameterType="com.tripdog.model.entity.SystemSettingDO">
+        UPDATE t_system_setting
+        SET `key` = #{key},
+            `value` = #{value},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询系统设置 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT id, `key`, `value`, created_at, updated_at
+        FROM t_system_setting
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据key查询系统设置 -->
+    <select id="selectByKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT id, `key`, `value`, created_at, updated_at
+        FROM t_system_setting
+        WHERE `key` = #{key}
+    </select>
+
+    <!-- 查询所有系统设置 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT id, `key`, `value`, created_at, updated_at
+        FROM t_system_setting
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据条件查询系统设置列表 -->
+    <select id="selectSystemSettingList" parameterType="com.tripdog.model.entity.SystemSettingDO" resultMap="BaseResultMap">
+        SELECT id, `key`, `value`, created_at, updated_at
+        FROM t_system_setting
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="key != null">
+                AND `key` = #{key}
+            </if>
+            <if test="value != null">
+                AND `value` = #{value}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据key删除系统设置 -->
+    <delete id="deleteByKey" parameterType="java.lang.String">
+        DELETE FROM t_system_setting WHERE `key` = #{key}
+    </delete>
+
+    <!-- 根据key更新系统设置 -->
+    <update id="updateByKey" parameterType="com.tripdog.model.entity.SystemSettingDO">
+        UPDATE t_system_setting
+        SET `value` = #{value},
+            updated_at = NOW()
+        WHERE `key` = #{key}
+    </update>
+
+    <!-- 根据key存在则更新，不存在则插入（upsert） -->
+    <insert id="insertOrUpdateByKey" parameterType="com.tripdog.model.entity.SystemSettingDO">
+        INSERT INTO t_system_setting (`key`, `value`, created_at, updated_at)
+        VALUES (#{key}, #{value}, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            `value` = VALUES(`value`),
+            updated_at = NOW()
+    </insert>
+
+    <!-- 判断key是否存在 -->
+    <select id="existsByKey" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM t_system_setting WHERE `key` = #{key}
+    </select>
+
+</mapper>

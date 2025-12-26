@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.tripdog.ai.model.internal.ChatApiClient;
+import com.tripdog.common.middleware.RedisClient;
 import com.tripdog.model.dto.ChatDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -25,8 +26,7 @@ import com.tripdog.ai.tts.QwenRealtimeTtsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.tripdog.common.Constants.CONVERSATION_ID;
-import static com.tripdog.common.Constants.ROLE_ID;
+import static com.tripdog.common.Constants.*;
 
 /**
  * 聊天服务实现类
@@ -40,6 +40,7 @@ public class ChatServiceImpl implements ChatService {
     private final QwenRealtimeTtsService qwenRealtimeTtsService;
     private final OpenApiClient openApiClient;
     private final ChatApiClient chatClient;
+    private final RedisClient redisClient;
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO chatReqDTO) {
@@ -99,9 +100,11 @@ public class ChatServiceImpl implements ChatService {
                 emitter.completeWithError(e);
             }
         } finally {
+            String limitRpmKey = REDIS_CHAT_LIMIT_RPM + userId;
+            redisClient.zadd(limitRpmKey, UUID.randomUUID(), (double) (int) System.currentTimeMillis() / 1000L);
+            log.info("userid: {}, ai response time consuming: {}s", userId, (System.currentTimeMillis() - start) / 1000);
             ThreadLocalUtils.remove(ROLE_ID);
         }
-        log.info("userid: {}, ai response time consuming: {}s", userId, (System.currentTimeMillis() - start) / 1000);
         return emitter;
     }
 

@@ -10,6 +10,12 @@ public class Constants {
     public static final String REDIS_KEY_PREFIX = "tripdoge:";
     public static final String REDIS_SUMMARY = REDIS_KEY_PREFIX + "chat:summary_threshold_count:";
     public static final String REDIS_INTIMACY = REDIS_KEY_PREFIX + "intimacy:";
+    public static final String REDIS_CHAT_LIMIT_RULE = REDIS_KEY_PREFIX + "limit:rule";
+    public static final String REDIS_CHAT_LIMIT_RPM = REDIS_KEY_PREFIX + "limit:rpm:";
+
+    // 系统设置 key
+    public static final String SYS_RPM = "rpm";
+
 
     public static final String USER_SESSION_KEY = "loginUser";
     public static final String USER = "user";

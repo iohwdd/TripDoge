@@ -2,7 +2,11 @@ package com.tripdog.controller;
 
 import java.util.List;
 
+import com.tripdog.common.Constants;
 import com.tripdog.common.PageVO;
+import com.tripdog.common.middleware.RedisClient;
+import com.tripdog.exception.LimitException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -21,19 +25,24 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import static com.tripdog.common.Constants.REDIS_CHAT_LIMIT_RPM;
+import static com.tripdog.common.Constants.REDIS_CHAT_LIMIT_RULE;
+
 /**
  * 聊天控制器
  * 实现一个用户对同一角色只有一个持久会话的逻辑
  */
+@Slf4j
 @Tag(name = "智能对话", description = "与AI角色进行对话的相关接口，支持SSE流式响应")
 @RestController
 @RequestMapping("/chat")
 @RequiredArgsConstructor
 public class ChatController {
-
     private final ChatService chatService;
     private final ConversationServiceImpl conversationServiceImpl;
     private final UserSessionService userSessionService;
+    private final RedisClient redisClient;
 
     /**
      * 与指定角色聊天
@@ -55,7 +64,31 @@ public class ChatController {
         }
         Long userId = userInfoVO.getId();
 
-        return chatService.chat(roleId, userId, req);
+        // 限流检查
+        String limitRpmKey = REDIS_CHAT_LIMIT_RPM + userId;
+        try {
+            int rmpLimit = (Integer) redisClient.hget(REDIS_CHAT_LIMIT_RULE, Constants.SYS_RPM);
+            long requestWindow = redisClient.zcount(limitRpmKey, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+            if(requestWindow >= rmpLimit) {
+                throw new LimitException(ErrorCode.LIMIT_BY_RPM.getMessage());
+            }
+            return chatService.chat(roleId, userId, req);
+        }catch (LimitException e){
+            log.warn("uid:{}, request chat failed, err:{}", userId, e.getMessage());
+            throw new RuntimeException(ErrorCode.LIMIT_BY_RPM.getMessage());
+        } finally {
+            redisClient.zremrangebyscore(limitRpmKey, Double.NEGATIVE_INFINITY, getCurrentMinuteTimeStamp());
+        }
+    }
+
+    /**
+     *  当前11.42:30，则返回 11.42:00 的时间戳
+     * @return 当前分钟的整数时间戳
+     */
+    private int getCurrentMinuteTimeStamp() {
+        long currentTimeSeconds = System.currentTimeMillis() / 1000;
+        long secondsInMinute = currentTimeSeconds % 60;
+        return (int) (currentTimeSeconds - secondsInMinute);
     }
 
     /**

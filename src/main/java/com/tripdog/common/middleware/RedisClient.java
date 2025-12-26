@@ -450,5 +450,12 @@ public class RedisClient {
         return redisTemplate.opsForZSet().incrementScore(key, member, delta);
     }
 
+    /**
+     * 删除有序集合指定分数范围内的成员
+     */
+    public Long zremrangebyscore(String key, double min, double max) {
+        return redisTemplate.opsForZSet().removeRangeByScore(key, min, max);
+    }
+
 }
 
