@@ -1,5 +1,12 @@
 # TripDoge 后端
 
+## 前端简览
+<img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/4d687317-2788-482b-8409-cd6fa764c2d9" />
+<img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/df937ba6-7cc9-4975-94c9-7224dc640bf5" />
+<img width="3024" height="1522" alt="4be7ab665bb8915d005d229b59924606" src="https://github.com/user-attachments/assets/ab64f68f-8636-4c73-ac49-d054ec68708a" />
+<img width="3024" height="1522" alt="image" src="https://github.com/user-attachments/assets/a64618a7-6673-43b6-8a14-b2e4b20ca7fa" />
+
+
 基于 Spring Boot 3 + Java 21 + LangChain4j 的多角色 AI 对话与知识库平台，支持对话、RAG、角色管理、文档投喂，并扩展了 LangGraph4j 旅行规划工作流（Markdown 路书，SSE 进度推送）。
 
 ## 能力速览
@@ -98,12 +105,6 @@ docs/                      # 配置与功能说明
 ## 常见问题
 - 启动失败：优先检查数据库、Redis、MinIO、DashScope 等连接与配置。
 - 更多排查与环境变量说明参见 `docs/TripDoge项目启动配置说明.md`。
-
-## 前端简览
-<img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/4d687317-2788-482b-8409-cd6fa764c2d9" />
-<img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/df937ba6-7cc9-4975-94c9-7224dc640bf5" />
-<img width="3024" height="1522" alt="4be7ab665bb8915d005d229b59924606" src="https://github.com/user-attachments/assets/ab64f68f-8636-4c73-ac49-d054ec68708a" />
-<img width="3024" height="1522" alt="image" src="https://github.com/user-attachments/assets/a64618a7-6673-43b6-8a14-b2e4b20ca7fa" />
 
 
 ## 贡献与维护
