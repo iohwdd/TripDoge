@@ -6,18 +6,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.tripdog.ai.model.internal.ChatApiClient;
+import com.tripdog.ai.model.router.ChatModelRouter;
 import com.tripdog.common.middleware.RedisClient;
-import com.tripdog.model.dto.ChatDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.util.StringUtils;
 
-import com.tripdog.ai.model.openapi.OpenApiClient;
-import com.tripdog.common.utils.FileUtil;
 import com.tripdog.common.utils.ThreadLocalUtils;
 import com.tripdog.model.dto.ChatReqDTO;
-import com.tripdog.model.dto.OpenApiChatDTO;
+import com.tripdog.model.dto.ChatRouteContext;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.service.ChatService;
 import com.tripdog.service.IntimacyService;
@@ -38,8 +35,7 @@ public class ChatServiceImpl implements ChatService {
     private final ConversationServiceImpl conversationServiceImpl;
     private final IntimacyService intimacyService;
     private final QwenRealtimeTtsService qwenRealtimeTtsService;
-    private final OpenApiClient openApiClient;
-    private final ChatApiClient chatClient;
+    private final ChatModelRouter chatModelRouter;
     private final RedisClient redisClient;
 
     @Override
@@ -68,30 +64,14 @@ public class ChatServiceImpl implements ChatService {
             handleIntimacyChange(emitter, userId, roleId);
 
             // 文本模型 or 视觉模型路由
-            String originalFilename = chatReqDTO.getFile() != null ? chatReqDTO.getFile().getOriginalFilename() : null;
-            if(originalFilename != null && FileUtil.isImage(originalFilename)) {
-                // 视觉模型
-                OpenApiChatDTO dto = new OpenApiChatDTO();
-                dto.setEmitter(emitter);
-                dto.setEmitterClosed(emitterClosed);
-                dto.setContent(chatReqDTO.getMessage());
-                dto.setFile(chatReqDTO.getFile());
-                dto.setConversationId(conversation.getConversationId());
-                dto.setBrand(OpenApiClient.QWEN);
-                dto.setTtsKey(ttsKeyHolder.get());
-                dto.setTtsHolder(ttsHolder.get());
-                return openApiClient.chat(dto);
-            } else {
-                // 文本模型
-                ChatDTO dto = new ChatDTO();
-                dto.setEmitter(emitter);
-                dto.setEmitterClosed(emitterClosed);
-                dto.setContent(chatReqDTO.getMessage());
-                dto.setConversationId(conversation.getConversationId());
-                dto.setTtsKey(ttsKeyHolder.get());
-                dto.setTtsHolder(ttsHolder.get());
-                return chatClient.chat(dto);
-            }
+            ChatRouteContext routeContext = new ChatRouteContext();
+            routeContext.setChatReqDTO(chatReqDTO);
+            routeContext.setConversation(conversation);
+            routeContext.setEmitter(emitter);
+            routeContext.setEmitterClosed(emitterClosed);
+            routeContext.setTtsHolder(ttsHolder.get());
+            routeContext.setTtsKey(ttsKeyHolder.get());
+            return chatModelRouter.route(routeContext);
 
         } catch (Exception e) {
             log.error("聊天服务处理异常", e);

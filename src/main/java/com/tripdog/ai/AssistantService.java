@@ -3,6 +3,7 @@ package com.tripdog.ai;
 import com.tripdog.ai.assistant.TravelPlaningAssistant;
 import com.tripdog.config.ai.AiModelHolder;
 import dev.langchain4j.model.chat.ChatModel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.ai.embedding.RetrieverFactory;
@@ -32,6 +33,7 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
  */
 @Configuration
 @RequiredArgsConstructor
+@Slf4j
 public class AssistantService {
     final AiModelHolder aiModelHolder;
     final RetrieverFactory retrieverFactory;
@@ -40,6 +42,11 @@ public class AssistantService {
 
     public ChatAssistant getAssistant() {
         StreamingChatModel chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.QwenStreamingChat);
+        // 如果本地部署了模型，优先使用本地模型
+        if (aiModelHolder.getStreamingChatModel(AiModelHolder.LocalStreamingChat) != null) {
+            log.info("使用本地模型...");
+            chatLanguageModel = aiModelHolder.getStreamingChatModel(AiModelHolder.LocalStreamingChat);
+        }
 
         EmbeddingStoreContentRetriever embeddingStoreContentRetriever = retrieverFactory.getRetriever();
 
