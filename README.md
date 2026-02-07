@@ -1,4 +1,4 @@
-# TripDoge 后端
+# TripDoge
 
 ## 前端简览
 <img width="3024" height="1522" alt="15e6ca330c855948037b02c640a522a3" src="https://github.com/user-attachments/assets/4d687317-2788-482b-8409-cd6fa764c2d9" />
