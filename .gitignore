@@ -53,6 +53,11 @@ nbactions.xml
 !.vscode/extensions.json
 *.code-workspace
 
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
 # Linux
 *~
 .directory
@@ -72,6 +77,12 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Frontend Build Output
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.vite/
 
 # Coverage reports
 coverage/

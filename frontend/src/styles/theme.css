@@ -1,0 +1,93 @@
+/* 暖色系主题定制 (TripDoge 宠物风格) */
+body {
+  /* 覆盖 Arco Design 的主色调 (原为蓝色) */
+  --primary-6: 255, 154, 46; /* #FF9A2E 暖橙色 (柴犬色) */
+  --primary-1: 255, 247, 232;
+  --primary-2: 255, 236, 207;
+  --primary-3: 255, 218, 166;
+  --primary-4: 255, 196, 112;
+  --primary-5: 255, 175, 71;
+  --primary-7: 217, 117, 22;
+  --color-primary-light-1: rgb(var(--primary-1));
+  --color-primary-light-2: rgb(var(--primary-2));
+  --color-primary-light-3: rgb(var(--primary-3));
+  --color-primary-light-4: rgb(var(--primary-4));
+  
+  /* 背景色调整 - 更温暖的米色调 */
+  --color-bg-1: #FFFCF5; /* 极浅的暖米色 */
+  --color-bg-2: #FFFFFF;
+  --color-fill-1: #FFF8EB; /* 浅橙色背景填充 */
+  --color-fill-2: #FFF2D6;
+  
+  /* 圆角风格 - 更圆润可爱 */
+  --border-radius-small: 4px;
+  --border-radius-medium: 8px;
+  --border-radius-large: 12px;
+  --border-radius-circle: 50%;
+}
+
+/* 全局字体优化 */
+body {
+  font-family: 'Nunito', 'PingFang SC', 'Microsoft YaHei', sans-serif; /* 圆润字体 */
+}
+
+/* 组件样式覆盖 */
+
+/* 按钮更圆润 */
+.arco-btn {
+  border-radius: 20px; 
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性动画 */
+}
+.arco-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 154, 46, 0.3);
+}
+
+/* 卡片悬浮效果 */
+.arco-card {
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 4px 16px rgba(163, 137, 112, 0.08);
+  transition: all 0.3s ease;
+}
+.arco-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(255, 154, 46, 0.15);
+}
+
+/* 输入框 */
+.arco-input-wrapper, .arco-textarea-wrapper {
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background-color: #FFF;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  transition: all 0.3s;
+}
+.arco-input-wrapper:focus-within, .arco-textarea-wrapper:focus-within {
+  border-color: rgb(var(--primary-6));
+  box-shadow: 0 0 0 3px rgba(255, 154, 46, 0.2);
+}
+
+/* 菜单选中样式 */
+.arco-menu-light .arco-menu-item.arco-menu-selected {
+  color: rgb(var(--primary-6));
+  background-color: var(--primary-1);
+  font-weight: 600;
+}
+.arco-menu-light .arco-menu-item:hover {
+  background-color: var(--primary-1);
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background-color: var(--primary-3);
+}
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
