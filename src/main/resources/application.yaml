@@ -110,6 +110,12 @@ minio:
   secret-key: ${MINIO_SK}
   bucket-name: trip-doge
 
+# ComfyUI
+comfyui:
+  base-url: ${COMFYUI_BASE_URL:http://127.0.0.1:8188}
+  poll-interval-ms: ${COMFYUI_POLL_INTERVAL_MS:1000}
+  poll-max-wait-ms: ${COMFYUI_POLL_MAX_WAIT_MS:180000}
+
 # CORS 跨域配置
 cors:
   # 允许的源域名，多个用逗号分隔

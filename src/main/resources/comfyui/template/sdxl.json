@@ -1,0 +1,198 @@
+{
+  "1": {
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Checkpoint加载器 base"
+    }
+  },
+  "2": {
+    "inputs": {
+      "ckpt_name": "sd_xl_refiner_1.0_0.9vae.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Checkpoint加载器 refiner"
+    }
+  },
+  "3": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "crop_w": 0,
+      "crop_h": 0,
+      "target_width": 1024,
+      "target_height": 1024,
+      "text_g": "一位年轻人，靠在樱花树下",
+      "text_l": "一位年轻人，靠在樱花树下",
+      "clip": [
+        "1",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeSDXL",
+    "_meta": {
+      "title": "CLIP文本编码（SDXL）"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ascore": 6,
+      "width": 1024,
+      "height": 1024,
+      "text": "一位年轻人，靠在樱花树下",
+      "clip": [
+        "2",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeSDXLRefiner",
+    "_meta": {
+      "title": "CLIP文本编码（SDXLRefiner）"
+    }
+  },
+  "8": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "crop_w": 0,
+      "crop_h": 0,
+      "target_width": 1024,
+      "target_height": 1024,
+      "text_g": "ugly",
+      "text_l": "ugly",
+      "clip": [
+        "1",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeSDXL",
+    "_meta": {
+      "title": "CLIP文本编码（SDXL）"
+    }
+  },
+  "9": {
+    "inputs": {
+      "ascore": 6,
+      "width": 1024,
+      "height": 1024,
+      "text": "ugly",
+      "clip": [
+        "2",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeSDXLRefiner",
+    "_meta": {
+      "title": "CLIP文本编码（SDXLRefiner）"
+    }
+  },
+  "12": {
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 717357046153451,
+      "steps": 30,
+      "cfg": 8,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 20,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "2",
+        0
+      ],
+      "positive": [
+        "4",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "latent_image": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "K采样器（高级）"
+    }
+  },
+  "13": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "15": {
+    "inputs": {
+      "samples": [
+        "12",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "17": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "21": {
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 1020718320897076,
+      "steps": 20,
+      "cfg": 8,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "3",
+        0
+      ],
+      "negative": [
+        "8",
+        0
+      ],
+      "latent_image": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "K采样器（高级）"
+    }
+  }
+}

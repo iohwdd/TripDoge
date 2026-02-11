@@ -13,6 +13,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import jakarta.annotation.PostConstruct;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -38,9 +39,9 @@ public class AiModelHolder {
     @Value("${ZHIPU_API_KEY}")
     private String zhipuApiKey;
 
-    @Value("${LOCALLY_MODEL_URL:http://localhost:11434}")
+    @Value("${LOCALLY_MODEL_URL}")
     private String locallyModelURL;
-    @Value(("${LOCALLY_MODEL_NAME:qwen3:8b}"))
+    @Value(("${LOCALLY_MODEL_NAME}"))
     private String locallyModelName;
 
     private Map<String, ChatModel> chatModels;
@@ -67,21 +68,25 @@ public class AiModelHolder {
                 .apiKey(zhipuApiKey)
                 .build();
 
-        StreamingChatModel localStreamingModel = OllamaStreamingChatModel.builder()
-                .baseUrl(locallyModelURL)
-                .modelName(locallyModelName)
-                .build();
-        ChatModel localChatModel = OllamaChatModel.builder()
-                .baseUrl(locallyModelURL)
-                .modelName(locallyModelName)
-                .build();
+        if (StringUtils.isNotEmpty(locallyModelName) && StringUtils.isNotEmpty(locallyModelURL)){
+            StreamingChatModel localStreamingModel = OllamaStreamingChatModel.builder()
+                    .baseUrl(locallyModelURL)
+                    .modelName(locallyModelName)
+                    .build();
+            ChatModel localChatModel = OllamaChatModel.builder()
+                    .baseUrl(locallyModelURL)
+                    .modelName(locallyModelName)
+                    .build();
+            chatModels.put(LocalChat, localChatModel);
+            streamingChatModels.put(LocalStreamingChat, localStreamingModel);
+
+        }
+
 
         chatModels.put(QwenChat, qwenChatModel);
         chatModels.put(ZhipuAiChat, zhipuAiChatModel);
-        chatModels.put(LocalChat, localChatModel);
         streamingChatModels.put(QwenStreamingChat, qwenStreamingChatModel);
         streamingChatModels.put(ZhipuAiStreamingChat, zhipuAiStreamingChatModel);
-        streamingChatModels.put(LocalStreamingChat, localStreamingModel);
     }
 
     public ChatModel getChatModel(String key) {
